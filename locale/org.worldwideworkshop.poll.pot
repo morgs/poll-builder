@@ -1,0 +1,217 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-06-14 14:01+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: poll.py:151
+msgid "Poll Builder"
+msgstr ""
+
+#: poll.py:178
+msgid "VOTE!"
+msgstr ""
+
+#: poll.py:180
+msgid "Poll Preview"
+msgstr ""
+
+#: poll.py:213 poll.py:989
+msgid "Choose a Poll"
+msgstr ""
+
+#: poll.py:264
+msgid "VOTE"
+msgstr ""
+
+#: poll.py:266
+msgid "SEE RESULTS"
+msgstr ""
+
+#: poll.py:276
+msgid "DELETE"
+msgstr ""
+
+#: poll.py:302
+msgid "Lesson Plans"
+msgstr ""
+
+#: poll.py:454
+msgid "votes"
+msgstr ""
+
+#: poll.py:470
+msgid "Vote"
+msgstr ""
+
+#: poll.py:478
+msgid "Edit Poll"
+msgstr ""
+
+#: poll.py:481
+msgid "Save Poll"
+msgstr ""
+
+#: poll.py:565 poll.py:984
+msgid "Build a Poll"
+msgstr ""
+
+#: poll.py:583
+msgid "Poll Title:"
+msgstr ""
+
+#: poll.py:593
+msgid "Question:"
+msgstr ""
+
+#: poll.py:603
+msgid "Number of votes to collect:"
+msgstr ""
+
+#: poll.py:614
+msgid "Answer"
+msgstr ""
+
+#: poll.py:626
+msgid "Step 1: Preview"
+msgstr ""
+
+#: poll.py:629
+msgid "Step 2: Save"
+msgstr ""
+
+#: poll.py:706
+msgid "Favorite Color"
+msgstr ""
+
+#: poll.py:712
+msgid "What is your favorite color?"
+msgstr ""
+
+#: poll.py:715
+msgid "Green"
+msgstr ""
+
+#: poll.py:716
+msgid "Red"
+msgstr ""
+
+#: poll.py:717
+msgid "Blue"
+msgstr ""
+
+#: poll.py:718
+msgid "Orange"
+msgstr ""
+
+#: poll.py:719
+msgid "None of the above"
+msgstr ""
+
+#: i18n.py:39
+msgid "Chinese (simplified)"
+msgstr ""
+
+#: i18n.py:40
+msgid "Chinese (traditional)"
+msgstr ""
+
+#: i18n.py:41
+msgid "Czech"
+msgstr ""
+
+#: i18n.py:42
+msgid "Danish"
+msgstr ""
+
+#: i18n.py:43
+msgid "Dutch"
+msgstr ""
+
+#: i18n.py:44
+msgid "English"
+msgstr ""
+
+#: i18n.py:45
+msgid "English - Great Britain"
+msgstr ""
+
+#: i18n.py:46
+msgid "English - U.S."
+msgstr ""
+
+#: i18n.py:47
+msgid "Finnish"
+msgstr ""
+
+#: i18n.py:48
+msgid "French"
+msgstr ""
+
+#: i18n.py:49
+msgid "German"
+msgstr ""
+
+#: i18n.py:50
+msgid "Hungarian"
+msgstr ""
+
+#: i18n.py:51
+msgid "Italian"
+msgstr ""
+
+#: i18n.py:52
+msgid "Japanese"
+msgstr ""
+
+#: i18n.py:53
+msgid "Korean"
+msgstr ""
+
+#: i18n.py:54
+msgid "Norwegian"
+msgstr ""
+
+#: i18n.py:55
+msgid "Polish"
+msgstr ""
+
+#: i18n.py:56
+msgid "Portuguese"
+msgstr ""
+
+#: i18n.py:57
+msgid "Portuguese - Brazilian"
+msgstr ""
+
+#: i18n.py:58
+msgid "Russian"
+msgstr ""
+
+#: i18n.py:59
+msgid "Slovak"
+msgstr ""
+
+#: i18n.py:60
+msgid "Spanish"
+msgstr ""
+
+#: i18n.py:61
+msgid "Swedish"
+msgstr ""
+
+#: i18n.py:62
+msgid "Turkish"
+msgstr ""

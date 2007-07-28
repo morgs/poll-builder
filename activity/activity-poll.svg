@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_svg "http://www.w3.org/2000/svg">
+	<!ENTITY ns_xlink "http://www.w3.org/1999/xlink">
+	<!ENTITY stroke_color "#000000">
+	<!ENTITY fill_color "#AAAAAA">
+]>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Icon"
+   width="45"
+   height="45"
+   viewBox="0 0 45 45"
+   overflow="visible"
+   enable-background="new 0 0 45 45"
+   xml:space="preserve"
+   sodipodi:version="0.32"
+   inkscape:version="0.45"
+   sodipodi:docname="new.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   sodipodi:docbase="/home/morgan/wwwf/projects/ksp/poll-activity/activity"
+   sodipodi:modified="true"><metadata
+   id="metadata86"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="defs84" /><sodipodi:namedview
+   inkscape:window-height="480"
+   inkscape:window-width="640"
+   inkscape:pageshadow="2"
+   inkscape:pageopacity="0.0"
+   guidetolerance="10.0"
+   gridtolerance="10.0"
+   objecttolerance="10.0"
+   borderopacity="1.0"
+   bordercolor="#666666"
+   pagecolor="#ffffff"
+   id="base" />
+<rect
+   style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;"
+   id="rect1"
+   width="18"
+   height="18"
+   x="7"
+   y="1" />
+<rect
+   style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;"
+   id="rect2"
+   width="18"
+   height="18"
+   x="7"
+   y="25" />
+<path d="M 7,25 L 25,43" style="stroke:&stroke_color;;stroke-width:3.5" />
+<path d="M 25,25 L 7,43" style="stroke:&stroke_color;;stroke-width:3.5" />
+<path
+   id="Pencil"
+   d="M 31.33613,11.694477 L 21.14313,25.189477 L 19.05513,27.906477 L 15.57913,36.173477 C 15.53313,36.277477 15.56113,36.396477 15.64813,36.468477 C 15.73713,36.539477 15.85913,36.552477 15.95513,36.488477 L 23.78113,31.451477 C 23.79313,31.443477 23.79313,31.424477 23.80313,31.408477 C 23.86713,31.359477 23.94513,31.316477 23.99813,31.246477 C 24.00213,31.244477 24.03213,31.205477 24.03213,31.197477 L 25.86313,28.926477 L 31.33213,21.872477 L 39.34413,11.543477 C 39.36513,11.520477 39.49213,11.340477 39.49213,11.340477 C 39.58913,11.179477 39.64013,10.995477 39.64013,10.784477 C 39.64013,10.723477 39.64013,10.666477 39.62813,10.608477 C 39.54013,9.8454766 38.91213,8.9264766 37.98813,8.1954766 C 37.06513,7.4674766 36.01913,7.0724766 35.26013,7.1614766 C 34.93413,7.2034766 34.47113,7.5364766 34.47113,7.5364766 L 31.33613,11.694477 z "
+   style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5" />
+</svg>

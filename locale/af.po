@@ -1,0 +1,218 @@
+# Afrikaans translation for olpc-poll-builder
+# Copyright (c) 2007 Rosetta Contributors and Canonical Ltd 2007
+# This file is distributed under the same license as the olpc-poll-builder package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2007.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: olpc-poll-builder\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2007-06-14 14:01+0200\n"
+"PO-Revision-Date: 2007-06-22 08:43+0000\n"
+"Last-Translator: Morgan Collett <morgan.collett+launchpad@gmail.com>\n"
+"Language-Team: Afrikaans <af@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Rosetta-Export-Date: 2007-06-22 08:48:10+0000\n"
+
+#: poll.py:151
+msgid "Poll Builder"
+msgstr "Verkiesing Bou"
+
+#: poll.py:178
+msgid "VOTE!"
+msgstr "STEM!"
+
+#: poll.py:180
+msgid "Poll Preview"
+msgstr "Stem Voorskou"
+
+#: poll.py:213 poll.py:989
+msgid "Choose a Poll"
+msgstr "Kies 'n Verkiesing"
+
+#: poll.py:264
+msgid "VOTE"
+msgstr "STEM"
+
+#: poll.py:266
+msgid "SEE RESULTS"
+msgstr "SIEN UITSLAE"
+
+#: poll.py:276
+msgid "DELETE"
+msgstr "UITWIS"
+
+#: poll.py:302
+msgid "Lesson Plans"
+msgstr "Les Planne"
+
+#: poll.py:454
+msgid "votes"
+msgstr "stemme"
+
+#: poll.py:470
+msgid "Vote"
+msgstr "Stem"
+
+#: poll.py:478
+msgid "Edit Poll"
+msgstr "Redigeer Verkiesing"
+
+#: poll.py:481
+msgid "Save Poll"
+msgstr "Stoor Verkiesing"
+
+#: poll.py:565 poll.py:984
+msgid "Build a Poll"
+msgstr "Bou 'n Verkiesing"
+
+#: poll.py:583
+msgid "Poll Title:"
+msgstr "Verkiesingstitel"
+
+#: poll.py:593
+msgid "Question:"
+msgstr "Vraag:"
+
+#: poll.py:603
+msgid "Number of votes to collect:"
+msgstr "Nommer stemme om te kollekteer:"
+
+#: poll.py:614
+msgid "Answer"
+msgstr "Antwoord"
+
+#: poll.py:626
+msgid "Step 1: Preview"
+msgstr "Trap 1: Voorskou"
+
+#: poll.py:629
+msgid "Step 2: Save"
+msgstr "Trap 2: Stoor"
+
+#: poll.py:706
+msgid "Favorite Color"
+msgstr "Gunstelling Kleur"
+
+#: poll.py:712
+msgid "What is your favorite color?"
+msgstr "Wat is jou gunstelling kleur?"
+
+#: poll.py:715
+msgid "Green"
+msgstr "Groen"
+
+#: poll.py:716
+msgid "Red"
+msgstr "Rooi"
+
+#: poll.py:717
+msgid "Blue"
+msgstr "Blou"
+
+#: poll.py:718
+msgid "Orange"
+msgstr "Oranje"
+
+#: poll.py:719
+msgid "None of the above"
+msgstr "Geen van die bogenoemde"
+
+#: i18n.py:39
+msgid "Chinese (simplified)"
+msgstr "Sjinees (vereenvoudig)"
+
+#: i18n.py:40
+msgid "Chinese (traditional)"
+msgstr "Sjnees (tradisioneel)"
+
+#: i18n.py:41
+msgid "Czech"
+msgstr "Tsjeggies"
+
+#: i18n.py:42
+msgid "Danish"
+msgstr "Deens"
+
+#: i18n.py:43
+msgid "Dutch"
+msgstr "Hollandse"
+
+#: i18n.py:44
+msgid "English"
+msgstr "Engels"
+
+#: i18n.py:45
+msgid "English - Great Britain"
+msgstr "Engels - GB"
+
+#: i18n.py:46
+msgid "English - U.S."
+msgstr "Engels - VSA"
+
+#: i18n.py:47
+msgid "Finnish"
+msgstr "Feense"
+
+#: i18n.py:48
+msgid "French"
+msgstr "Fraans"
+
+#: i18n.py:49
+msgid "German"
+msgstr "Duits"
+
+#: i18n.py:50
+msgid "Hungarian"
+msgstr "Hongaars"
+
+#: i18n.py:51
+msgid "Italian"
+msgstr "Italiaans"
+
+#: i18n.py:52
+msgid "Japanese"
+msgstr "Japannees"
+
+#: i18n.py:53
+msgid "Korean"
+msgstr "Koriaans"
+
+#: i18n.py:54
+msgid "Norwegian"
+msgstr "Noörwees"
+
+#: i18n.py:55
+msgid "Polish"
+msgstr "Pools"
+
+#: i18n.py:56
+msgid "Portuguese"
+msgstr "Portugees"
+
+#: i18n.py:57
+msgid "Portuguese - Brazilian"
+msgstr "Portugees - Braziliaanse"
+
+#: i18n.py:58
+msgid "Russian"
+msgstr "Russies"
+
+#: i18n.py:59
+msgid "Slovak"
+msgstr "Slovakies"
+
+#: i18n.py:60
+msgid "Spanish"
+msgstr "Spaans"
+
+#: i18n.py:61
+msgid "Swedish"
+msgstr "Sweeds"
+
+#: i18n.py:62
+msgid "Turkish"
+msgstr "Turks"

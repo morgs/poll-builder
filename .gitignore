@@ -1,0 +1,5 @@
+*.pyc
+.bzr
+.bzrignore
+*.swp
+*.xo

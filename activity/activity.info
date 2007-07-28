@@ -1,0 +1,7 @@
+[Activity]
+name = Poll
+service_name = org.worldwideworkshop.PollBuilder
+class = poll.PollBuilder
+icon = activity-poll
+activity_version = 4
+show_launcher = no
