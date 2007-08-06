@@ -1,4 +1,5 @@
-# Copyright 2007 World Wide Workshop, Collabora Ltd.
+# Copyright 2007 World Wide Workshop
+# Copyright 2007 Collabora Ltd
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,10 +41,8 @@ from sugar.activity import activity
 from sugar.graphics import color
 from sugar.graphics.units import points_to_pixels as px
 from sugar.presence import presenceservice
-from abiword import Canvas as AbiCanvas
+#from abiword import Canvas as AbiCanvas
 from i18n import LanguageComboBox
-
-#logger = logging.getLogger('poll-activity')
 
 SERVICE = "org.worldwideworkshop.PollBuilder"
 IFACE = SERVICE
@@ -154,15 +153,27 @@ class PollBuilder(activity.Activity):
     """
     def __init__(self, handle):
         activity.Activity.__init__(self, handle)
-        # XXX Make self.poll_ stuff into a dict for easier loading and saving
-        # or even a class of its own
 
         self._logger = logging.getLogger('poll-activity')
         self._logger.debug('Starting Poll activity')
 
+        # get the Presence Service
+        self.pservice = presenceservice.get_instance()
+        name, path = self.pservice.get_preferred_connection()
+        self.tp_conn_name = name
+        self.tp_conn_path = path
+        self.conn = telepathy.client.Connection(name, path)
+        self.initiating = None
+        
+        # Buddy object for you
+        owner = self.pservice.get_owner()
+        self.owner = owner
+        self.nick = owner.props.nick
+        self.nick_sha1 = sha1(self.nick).hexdigest()
+
         self._basepath = activity.get_bundle_path()
         os.chdir(self._basepath)  # required for i18n.py to work
-        self.journal_path = os.path.join(os.path.expanduser("~"), "Journal", "poll-builder")
+        self.journal_path = os.path.join(os.path.expanduser("~"), "Journal", "poll-builder", self.nick)
         if (not os.path.exists(self.journal_path)):
             os.makedirs(self.journal_path)
         self.journal_index = os.path.join(self.journal_path, 'pollindex.txt')
@@ -193,20 +204,7 @@ class PollBuilder(activity.Activity):
         self.show_all()
 
         self.poll_session = None  # PollSession
-
-        # get the Presence Service
-        self.pservice = presenceservice.get_instance()
-        name, path = self.pservice.get_preferred_connection()
-        self.tp_conn_name = name
-        self.tp_conn_path = path
-        self.conn = telepathy.client.Connection(name, path)
-        self.initiating = None
-        
         self.connect('shared', self._shared_cb)
-
-        # Buddy object for you
-        owner = self.pservice.get_owner()
-        self.owner = owner
 
         if self._shared_activity:
             # we are joining the activity
@@ -292,8 +290,8 @@ class PollBuilder(activity.Activity):
         poll_details_box.append(poll_selector_box)  # XXX scrolledwindow?
 
         row_number = 0
-        for title in self._polls_index.keys():
-            poll = self._polls_index[title]
+        for sha in self._polls_index.keys():
+            poll = self._polls_index[sha]
             if row_number % 2:
                 row_bgcolor=color.WHITE.get_int()
             else:
@@ -310,7 +308,7 @@ class PollBuilder(activity.Activity):
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             poll_row.append(sized_box)
             title = hippo.CanvasText(
-                text=title+' ('+poll['author']+')',
+                text=poll['title']+' ('+poll['author']+')',
                 xalign=hippo.ALIGNMENT_START,
                 color=color.HTMLColor(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 10'))
@@ -324,8 +322,7 @@ class PollBuilder(activity.Activity):
                 button = gtk.Button(_('VOTE'))
             else:
                 button = gtk.Button(_('SEE RESULTS'))
-            button.connect('clicked', self._select_poll_button_cb,
-                           poll['sha'])
+            button.connect('clicked', self._select_poll_button_cb, sha)
             sized_box.append(hippo.CanvasWidget(widget=theme_button(button)))
 
             sized_box = hippo.CanvasBox(
@@ -334,11 +331,10 @@ class PollBuilder(activity.Activity):
             poll_row.append(sized_box)
             if poll['author'] == self._pservice.get_owner().props.nick:
                 button = gtk.Button(_('DELETE'))
-                button.connect('clicked', self._delete_poll_button_cb,
-                               poll['sha'])
+                button.connect('clicked', self._delete_poll_button_cb, sha)
                 sized_box.append(hippo.CanvasWidget(widget=theme_button(button)))
             poll_row.append(hippo.CanvasText(
-                text=self.poll_createdate.strftime('%d/%m/%y'),
+                text=poll['createdate'].strftime('%d/%m/%y'),
                 color=color.HTMLColor(DARK_GREEN).get_int()))
 
         button_box = self._canvas_buttonbox(button_to_highlight=2)
@@ -372,10 +368,10 @@ class PollBuilder(activity.Activity):
             orientation=hippo.ORIENTATION_VERTICAL)
         mainbox.append(poll_details_box)
 
-        lessonplan = LessonPlanWidget(self._basepath)
-        lessonplan.set_size_request(1050, 500)
-        poll_details_box.append(hippo.CanvasWidget(widget=lessonplan),
-                                hippo.PACK_EXPAND)
+        #lessonplan = LessonPlanWidget(self._basepath)
+        #lessonplan.set_size_request(1050, 500)
+        #poll_details_box.append(hippo.CanvasWidget(widget=lessonplan),
+        #                        hippo.PACK_EXPAND)
 
         button_box = self._canvas_buttonbox()
         mainbox.append(button_box, hippo.PACK_END)
@@ -387,7 +383,7 @@ class PollBuilder(activity.Activity):
         if not sha:
             self._logger.debug('Strange, which button was clicked?')
             return
-        self._resume_from_journal(sha)
+        self._switch_to_poll(sha)
         self._has_voted = False
         self._canvas.set_root(self._poll_canvas())
         self.show_all()
@@ -409,18 +405,18 @@ class PollBuilder(activity.Activity):
         poll_details_box = self.poll_details_box
         poll_details_box.remove_all()
 
-        votes_total = self.get_votes_total()
+        votes_total = self._poll.vote_count
 
-        text_size = self._size_heading_text(self.poll_title)
+        text_size = self._size_heading_text(self._poll.title)
         title = hippo.CanvasText(
-            text=self.poll_title,
+            text=self._poll.title,
             xalign=hippo.ALIGNMENT_START,
             color=color.HTMLColor(DARK_GREEN).get_int(),
             font_desc = pango.FontDescription('Sans %d' % text_size))
         poll_details_box.append(title)
-        text_size = self._size_heading_text(self.poll_question)
+        text_size = self._size_heading_text(self._poll.question)
         question = hippo.CanvasText(
-            text=self.poll_question,
+            text=self._poll.question,
             xalign=hippo.ALIGNMENT_START,
             color=color.HTMLColor(DARK_GREEN).get_int(),
             font_desc = pango.FontDescription('Sans %d' % text_size))
@@ -428,8 +424,8 @@ class PollBuilder(activity.Activity):
 
         button = None  # required for radio button group
         button = gtk.RadioButton()
-        for choice in range(self.poll_number_of_options):
-            self._logger.debug(self.poll_options[choice])
+        for choice in range(self._poll.number_of_options):
+            self._logger.debug(self._poll.options[choice])
             answer_row = hippo.CanvasBox(spacing=8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
 
@@ -437,8 +433,8 @@ class PollBuilder(activity.Activity):
                 box_width=400,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             answer_row.append(sized_box)
-            if self.poll_active:
-                button = gtk.RadioButton(button, ' '+self.poll_options[choice])
+            if self._poll.active:
+                button = gtk.RadioButton(button, ' '+self._poll.options[choice])
                 button.set_size_request(400, -1)
                 button.connect('toggled', self.vote_choice_radio_button, choice)
                 sized_box.append(hippo.CanvasWidget(
@@ -447,43 +443,43 @@ class PollBuilder(activity.Activity):
                         size=self._size_answer_text(choice))))
             else:
                 sized_box.append(hippo.CanvasText(
-                    text=self.poll_options[choice],
+                    text=self._poll.options[choice],
                     color=color.HTMLColor(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans %d' %
                         self._size_answer_text(choice))))
 
             # show results if the user has just voted,
             # unless the poll is closed - then show it straight away
-            if votes_total > 0 and ((self.poll_active and self._has_voted) or
-                                    not self.poll_active):
+            if votes_total > 0 and ((self._poll.active and self._has_voted) or
+                                    not self._poll.active):
                 # show results
-                self._logger.debug(str(self.poll_data[choice] * 1.0 / votes_total))
+                self._logger.debug(str(self._poll.data[choice] * 1.0 / votes_total))
                 result_box = hippo.CanvasBox(
                     orientation=hippo.ORIENTATION_VERTICAL,
                     box_width=100)
                 answer_row.append(result_box)
                 result_box.append(hippo.CanvasText(
-                    #text=str(self.poll_data[choice]),
-                    text=justify(self.poll_data, choice),
+                    #text=str(self._poll.data[choice]),
+                    text=justify(self._poll.data, choice),
                     xalign=hippo.ALIGNMENT_END,
                     color=color.HTMLColor(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans 12')))
-                # int(self.poll_data[choice] * 1.0 / votes_total * 20) * '*',
+                # int(self._poll.data[choice] * 1.0 / votes_total * 20) * '*',
                 # APPEND BARGRAPH TO result_box
                 graphbox = hippo.CanvasBox(
                     orientation=hippo.ORIENTATION_HORIZONTAL,
                     background_color=color.HTMLColor(PINK).get_int(),
-                    box_width=int(self.poll_data[choice] * 1.0 / votes_total * 20) * 20)
+                    box_width=int(self._poll.data[choice] * 1.0 / votes_total * 20) * 20)
                 answer_row.append(graphbox)
                 answer_row.append(hippo.CanvasText(
-                    text=str(self.poll_data[choice] * 100 / votes_total)+'%',
+                    text=str(self._poll.data[choice] * 100 / votes_total)+'%',
                     color=color.HTMLColor(DARK_GREEN).get_int(),
                     font_desc=pango.FontDescription('Sans 10')))
 
             poll_details_box.append(answer_row)
 
-        if (self.poll_active and self._has_voted) or\
-            not self.poll_active:
+        if (self._poll.active and self._has_voted) or\
+            not self._poll.active:
             # Line above total
             line_box = hippo.CanvasBox(
                 spacing=8,
@@ -520,15 +516,15 @@ class PollBuilder(activity.Activity):
                 xalign=hippo.ALIGNMENT_START,
                 color=color.HTMLColor(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 12')))
-            if votes_total < self.poll_maxvoters:
+            if votes_total < self._poll.maxvoters:
                 totals_box.append(hippo.CanvasText(
-                    text=' ('+str(self.poll_maxvoters-votes_total)+
+                    text=' ('+str(self._poll.maxvoters-votes_total)+
                          ' votes left to collect)',
                     color=color.HTMLColor(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans 12')))
 
         # Button area
-        if self.poll_active and not self._preview:
+        if self._poll.active and not self._preview:
             button_box = hippo.CanvasBox(spacing=8,
                 padding = 8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
@@ -563,16 +559,14 @@ class PollBuilder(activity.Activity):
         and increment the poll_data.
         """
         if self.current_vote is not None:
-            if self.get_votes_total() >= self.poll_maxvoters:
+            if self._poll.vote_count >= self._poll.maxvoters:
                 self._logger.debug(
                     'Hit the max voters, ignoring this vote.')
                 return
             self._logger.debug('Voted '+str(self.current_vote))
             self._has_voted = True
-            self.poll_data[self.current_vote] += 1
-            if self.get_votes_total() >= self.poll_maxvoters:
-                self.poll_active = False  # close poll
-            self._logger.debug('Results: '+str(self.poll_data))
+            self._poll.register_vote(self.current_vote, self.nick_sha1)
+            self._logger.debug('Results: '+str(self._poll.data))
             self.draw_poll_details_box()
             # Update index when writing as poll may have closed:
             self._write_to_journal(update_index=True)
@@ -587,13 +581,13 @@ class PollBuilder(activity.Activity):
 
         Make sure current poll is saved.
         """
-        if self.poll_title:
+        if self._poll.title:
             self._write_to_journal(update_index=True)
         # Reset vote data to 0
         self._make_blank_poll()
         owner = self._pservice.get_owner()
-        self.poll_author = owner.props.nick
-        self.poll_active = False
+        self._poll.author = owner.props.nick
+        self._poll.active = False
         self._canvas.set_root(self._build_canvas())
         self.show_all()
 
@@ -644,7 +638,7 @@ class PollBuilder(activity.Activity):
                                        warn='title' in highlight))
         entrybox = gtk.Entry()
         entrybox.set_size_request(800, -1)
-        entrybox.set_text(self.poll_title)
+        entrybox.set_text(self._poll.title)
         entrybox.connect('changed', self._entry_activate_cb, 'title')
         hbox.append(hippo.CanvasWidget(widget=entrybox), hippo.PACK_EXPAND)
         buildbox.append(hbox, hippo.PACK_EXPAND)
@@ -654,7 +648,7 @@ class PollBuilder(activity.Activity):
         hbox.append(self._text_mainbox(_('Question:'),
                                        warn='question' in highlight))
         entrybox = gtk.Entry()
-        entrybox.set_text(self.poll_question)
+        entrybox.set_text(self._poll.question)
         entrybox.connect('changed', self._entry_activate_cb, 'question')
         hbox.append(hippo.CanvasWidget(widget=entrybox), hippo.PACK_EXPAND)
         buildbox.append(hbox, hippo.PACK_EXPAND)
@@ -664,19 +658,19 @@ class PollBuilder(activity.Activity):
         hbox.append(self._text_mainbox(_('Number of votes to collect:'),
                                        warn='maxvoters' in highlight))
         entrybox = gtk.Entry()
-        entrybox.set_text(str(self.poll_maxvoters))
+        entrybox.set_text(str(self._poll.maxvoters))
         entrybox.connect('changed', self._entry_activate_cb, 'maxvoters')
         hbox.append(hippo.CanvasWidget(widget=entrybox))
         buildbox.append(hbox)
 
-        for choice in self.poll_options.keys():
+        for choice in self._poll.options.keys():
             hbox = hippo.CanvasBox(spacing=8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             hbox.append(self._text_mainbox(_('Answer') + ' ' + str(choice+1) +
                                            ':',
                                            warn=str(choice) in highlight))
             entrybox = gtk.Entry()
-            entrybox.set_text(self.poll_options[choice])
+            entrybox.set_text(self._poll.options[choice])
             entrybox.connect('changed', self._entry_activate_cb, str(choice))
             hbox.append(hippo.CanvasWidget(widget=entrybox), hippo.PACK_EXPAND)
             buildbox.append(hbox, hippo.PACK_EXPAND)
@@ -706,7 +700,7 @@ class PollBuilder(activity.Activity):
             self.show_all()
             return
         # Data OK
-        self.poll_active = True  # Show radio buttons
+        self._poll.active = True  # Show radio buttons
         self._preview = True
         self._canvas.set_root(self._poll_canvas())
         self.show_all()
@@ -721,7 +715,7 @@ class PollBuilder(activity.Activity):
             return
         # Data OK
         self._preview = False
-        self.poll_active = True
+        self._poll.active = True
         self._write_to_journal(update_index=True)
         self._canvas.set_root(self._poll_canvas())
         self.show_all()
@@ -731,76 +725,57 @@ class PollBuilder(activity.Activity):
         if data:
             if text:
                 if data=='title':
-                    self.poll_title = text
+                    self._poll.title = text
                 elif data=='question':
-                    self.poll_question = text
+                    self._poll.question = text
                 elif data=='maxvoters':
                     try:
-                        self.poll_maxvoters = int(text)
+                        self._poll.maxvoters = int(text)
                     except ValueError:
-                        self.poll_maxvoters = 0  # invalid, will be trapped
+                        self._poll.maxvoters = 0  # invalid, will be trapped
                 else:
-                    self.poll_options[int(data)] = text
+                    self._poll.options[int(data)] = text
 
     def _make_blank_poll(self):
         """Initialize the poll state."""
-        self.poll_title = self.poll_author = ''
-        self.poll_active = False
-        self.poll_createdate = date.today()
-        self.poll_maxvoters = 20
-        self.poll_question = ''
-        self.poll_number_of_options = 5
-        self.poll_options = {0: '', 1: '', 2: '', 3: '', 4: ''}
-        self.poll_data = {0: 0, 1:0, 2:0, 3:0, 4:0}
+        self._poll = Poll(activity=self)
         self.current_vote = None
 
     def _make_default_poll(self):
         """A hardcoded poll for first time launch."""
-        self.poll_title = _('Favorite Color')
-        self.poll_createdate = date.today()
-        owner = self._pservice.get_owner()
-        self.poll_author = owner.props.nick
-        self.poll_active = True
-        self.poll_maxvoters = 20
-        self.poll_question = _('What is your favorite color?')
-        self.poll_number_of_options = 5
-        self.poll_options = {
-            0: _('Green'),
-            1: _('Red'),
-            2: _('Blue'),
-            3: _('Orange'),
-            4: _('None of the above'),
-        }
-        self.poll_data = {0: 0, 1:0, 2:0, 3:0, 4:0}
+        self._poll = Poll(
+            activity=self, title=self.nick + ' ' + _('Favorite Color'),
+            author=self.nick, active=True,
+            question=_('What is your favorite color?'),
+            options = {0: _('Green'), 1: _('Red'), 2: _('Blue'),
+                3: _('Orange'), 4: _('None of the above')})
         self.current_vote = None
-        # XXX The above must be extended to cater for only one vote per XO, tracking
-        # an anonymous but unique identifier per XO and the vote cast
         self._journal_index_add()
 
     def _validate(self):
         failed_items = []
-        if self.poll_title == '':
+        if self._poll.title == '':
             failed_items.append('title')
-        if self.poll_question == '':
+        if self._poll.question == '':
             failed_items.append('question')
-        if self.poll_maxvoters == 0:
+        if self._poll.maxvoters == 0:
             failed_items.append('maxvoters')
-        if self.poll_options[0] == '':
+        if self._poll.options[0] == '':
             failed_items.append('0')
-        if self.poll_options[1] == '':
+        if self._poll.options[1] == '':
             failed_items.append('1')
-        if self.poll_options[3] != '' and self.poll_options[2] == '':
+        if self._poll.options[3] != '' and self._poll.options[2] == '':
             failed_items.append('2')
-        if self.poll_options[4] != '' and self.poll_options[3] == '':
+        if self._poll.options[4] != '' and self._poll.options[3] == '':
             failed_items.append('3')
-        if self.poll_options[2] == '':
-            self.poll_number_of_options = 2
-        elif self.poll_options[3] == '':
-            self.poll_number_of_options = 3
-        elif self.poll_options[4] == '':
-            self.poll_number_of_options = 4
+        if self._poll.options[2] == '':
+            self._poll.number_of_options = 2
+        elif self._poll.options[3] == '':
+            self._poll.number_of_options = 3
+        elif self._poll.options[4] == '':
+            self._poll.number_of_options = 4
         else:
-            self.poll_number_of_options = 5
+            self._poll.number_of_options = 5
         return failed_items
             
     def _write_to_journal(self, update_index=False):
@@ -811,42 +786,88 @@ class PollBuilder(activity.Activity):
         when creating a new poll.
         """
         sha = self._get_sha()
-        self.filename = os.path.join(self.journal_path, sha)
-        f = open(self.filename, 'w')
-        pickle.dump(self.poll_title, f)
-        pickle.dump(self.poll_author, f)
-        pickle.dump(self.poll_active, f)
-        pickle.dump(self.poll_createdate, f)
-        pickle.dump(self.poll_maxvoters, f)
-        pickle.dump(self.poll_question, f)
-        pickle.dump(self.poll_number_of_options, f)
-        pickle.dump(self.poll_options, f)
-        pickle.dump(self.poll_data, f)
+        filename = os.path.join(self.journal_path, sha)
+        f = open(filename, 'w')
+        pickle.dump(self._poll.title, f)
+        pickle.dump(self._poll.author, f)
+        pickle.dump(self._poll.active, f)
+        pickle.dump(self._poll.createdate, f)
+        pickle.dump(self._poll.maxvoters, f)
+        pickle.dump(self._poll.question, f)
+        pickle.dump(self._poll.number_of_options, f)
+        pickle.dump(self._poll.options, f)
+        pickle.dump(self._poll.data, f)
         f.close()
         if update_index:
             self._journal_index_add()
 
+    def write_poll(self, poll, update_index=False):
+        """Write a poll received over the mesh, to file.
+        
+        poll -- Poll
+        
+        Pass update_index=True if you need to make sure
+        this poll is in the journal index file. For example,
+        when creating a new poll.
+        """
+        sha = poll.sha
+        filename = os.path.join(self.journal_path, sha)
+        f = open(filename, 'w')
+        pickle.dump(poll.title, f)
+        pickle.dump(poll.author, f)
+        pickle.dump(poll.active, f)
+        pickle.dump(poll.createdate, f)
+        pickle.dump(poll.maxvoters, f)
+        pickle.dump(poll.question, f)
+        pickle.dump(poll.number_of_options, f)
+        pickle.dump(poll.options, f)
+        pickle.dump(poll.data, f)
+        f.close()
+        if update_index:
+            self.journal_index_add_poll(poll)
+
     def _journal_index_add(self):
         """Write the current poll to the journal index."""
-        self._journal_index_load()
+        self._polls.add(self._poll)
         # insert self
-        self._polls_index[self.poll_title] = {
-            'author': self.poll_author,
-            'active': self.poll_active,
-            'createdate': self.poll_createdate,
-            'sha': self._get_sha(),
+        self._polls_index[self._get_sha()] = {
+            'title': self._poll.title,
+            'author': self._poll.author,
+            'active': self._poll.active,
+            'createdate': self._poll.createdate,
+        }
+        # write index
+        self._journal_index_write()
+
+    def journal_index_add_poll(self, poll):
+        """Write a poll to the journal index."""
+        self._polls.add(poll)
+        self._polls_index[poll.sha] = {
+            'title': poll.title,
+            'author': poll.author,
+            'active': poll.active,
+            'createdate': poll.createdate,
         }
         # write index
         self._journal_index_write()
 
     def _journal_index_del(self, sha):
         """Delete a poll from the journal index."""
-        self._journal_index_load()
-        for poll in self._polls_index.keys():
-            if self._polls_index[poll]['sha'] == sha:
-                del self._polls_index[poll]
-                self._journal_index_write()
-                return
+        # XXX Assumes that the poll is not selected as the current poll
+        # or that we don't care since you have to select another poll
+        # from the screen that displays the del buttons anyway
+        if self._polls_index[sha]['author'] != self.nick:
+            _logger.debug('Could not delete poll %s: you are not author' %
+                sha)
+            return
+        if self._poll.sha == sha:
+            # Make sure the current poll is not invalid:
+            self._make_blank_poll()
+        for poll in self._polls:
+            if poll.sha == sha:
+                self._polls.remove(poll)
+        del self._polls_index[sha]
+        self._journal_index_write()
 
     def _get_sha(self):
         """Return a sha1 hash of something about this poll.
@@ -855,12 +876,12 @@ class PollBuilder(activity.Activity):
         This is used for the filename of the saved poll.
         It will probably be used for the mesh networking too.
         """
-        sha = sha1(self.poll_title + self.poll_author).hexdigest()
-        return sha
+        return self._poll.sha
     
     def _journal_index_load(self):
         """Load the journal index of saved polls."""
         self._polls_index = {}
+        self._polls = set() # the saved Polls
         try:
             lines = open(self.journal_index).readlines()
         except IOError:  # File does not exist
@@ -873,48 +894,78 @@ class PollBuilder(activity.Activity):
                 # incompatible file format change
                 self._logger.debug('Loading journal index file failed, resetting')
                 continue
-            self._polls_index[title] = {
-                'author': author, 'active': int(active),
-                'createdate': date.fromordinal(int(createdate)), 'sha': sha}
+            self._polls_index[sha] = {
+                'title': title,
+                'author': author,
+                'active': int(active),
+                'createdate': date.fromordinal(int(createdate)),
+                }
+            self._polls.add(self._load_from_journal(sha))
 
     def _journal_index_write(self):
         """Write the journal file."""
         # XXX Need to validate self._polls_index!
         f = open(self.journal_index, 'w')
-        for title in self._polls_index.keys():
+        for sha in self._polls_index:
             f.write('%s\t%s\t%d\t%d\t%s\n' % 
-                    (title,
-                     self._polls_index[title]['author'],
-                     self._polls_index[title]['active'],
-                     self._polls_index[title]['createdate'].toordinal(),
-                     self._polls_index[title]['sha']))
+                    (self._polls_index[sha]['title'],
+                     self._polls_index[sha]['author'],
+                     self._polls_index[sha]['active'],
+                     self._polls_index[sha]['createdate'].toordinal(),
+                     sha))
         f.close()
 
-    def _resume_from_journal(self, sha):
+    def _switch_to_poll(self, sha):
         """Load from journal based on the sha
 
         The sha comes from the index file.
         """
-        self.sha = sha
-        self.filename = os.path.join(self.journal_path, self.sha)
-        f = open(self.filename)
-        self.poll_title = pickle.load(f)
-        self.poll_author = pickle.load(f)
-        self.poll_active = pickle.load(f)
-        self.poll_createdate = pickle.load(f)
-        self.poll_maxvoters = pickle.load(f)
-        self.poll_question = pickle.load(f)
-        self.poll_number_of_options = pickle.load(f)
-        self.poll_options = pickle.load(f)
-        self.poll_data = pickle.load(f)
-        f.close()
+        for poll in self._polls:
+            if poll.sha == sha:
+                self._poll = poll
 
-    def get_votes_total(self):
-        """Return the total votes cast."""
-        total = 0
-        for choice in self.poll_options.keys():
-            total += self.poll_data[choice]
-        return total
+    def _load_from_journal(self, sha):
+        """Load from journal based on the sha
+
+        The sha comes from the index file.
+        Returns a Poll.
+        """
+        filename = os.path.join(self.journal_path, sha)
+        f = open(filename)
+        title = pickle.load(f)
+        author = pickle.load(f)
+        active = pickle.load(f)
+        createdate = pickle.load(f)
+        maxvoters = pickle.load(f)
+        question = pickle.load(f)
+        number_of_options = pickle.load(f)
+        options = pickle.load(f)
+        data = pickle.load(f)
+        try:
+            votes = pickle.load(f)
+        except:
+            # XXX Perhaps we need dummy data in this?
+            votes = {'foo': 0}
+        f.close()
+        return Poll(self, title, author, active, createdate, maxvoters,
+                    question, number_of_options, options, data, votes)
+
+    def get_my_polls(self):
+        """Return list of Polls for all polls I created."""
+        return [poll for poll in self._polls if poll.author==self.nick] 
+
+    def vote_on_poll(self, author, title, choice, votersha):
+        """Register a vote on a poll from the mesh.
+        
+        author -- string
+        title -- string
+        choice -- integer 0-4
+        votersha -- string
+          sha1 of the voter nick
+        """
+        for poll in self._polls:
+            if poll.author == author and poll.title == title:
+                poll.register_vote(choice, votersha)
 
     def _canvas_language_select_box(self):
         """CanvasBox definition for lang select box.
@@ -1031,7 +1082,7 @@ class PollBuilder(activity.Activity):
 
         returns font size as integer.
         """
-        text =  self.poll_options[choice]
+        text =  self._poll.options[choice]
         if len(text) <= 16:
             text_size = 12
         elif len(text) <= 18:
@@ -1247,14 +1298,85 @@ class PollBuilder(activity.Activity):
         else:
             handle = cs_handle
             logger.debug('non-CS handle %u belongs to itself', handle)
-
-            # XXX: deal with failure to get the handle owner
             assert handle != 0
-
-        # XXX: we're assuming that we have Buddy objects for all contacts -
-        # this might break when the server becomes scalable.
         return self.pservice.get_buddy_by_telepathy_handle(self.tp_conn_name,
                 self.tp_conn_path, handle)
+
+
+class Poll:
+    """Represent the data of one poll."""
+    def __init__(self, activity=None, title='', author='', active=False,
+                 createdate=date.today(), maxvoters=20, question='',
+                 number_of_options=5, 
+                 options={0: '', 1: '', 2: '', 3: '', 4: ''},
+                 data={0:0, 1:0, 2:0, 3:0, 4:0}, votes={'foo': 0}):
+        """Create the Poll."""
+        self.activity = activity
+        self.title = title
+        self.author = author
+        self.active = active
+        self.createdate = createdate
+        self.maxvoters = maxvoters
+        self.question = question
+        self.number_of_options = number_of_options
+        self.options = options
+        self.data = data
+        self.votes = votes
+        self._logger = logging.getLogger('poll-activity.Poll')
+        self._logger.debug('Creating Poll(%s by %s)' % (title, author))
+
+    @property
+    def vote_count(self):
+        """Return the total votes cast."""
+        total = 0
+        for choice in self.options.keys():
+            total += self.data[choice]
+        return total
+
+    @property
+    def sha(self):
+        """Return a sha1 hash of something about this poll.
+
+        Currently we sha1 the poll title and author.
+        """
+        return sha1(self.title + self.author).hexdigest()
+
+    def register_vote(self, choice, votersha):
+        """Register a vote on the poll.
+
+        votersha -- string
+          sha1 of the voter nick
+        """
+        self._logger.debug('In Poll.register_vote')
+        if self.active:
+            if self.vote_count < self.maxvoters:
+                self._logger.debug('About to vote')
+                # if voter already voted, change their vote:
+                if votersha in self.votes:
+                    self._logger.debug('%s already voted, decrementing their '
+                        'old choice %d' % (votersha, self.votes[votersha]))
+                    self.data[self.votes[votersha]] -= 1
+                self.votes[votersha] = choice
+                self.data[choice] += 1
+                self._logger.debug(
+                    'Recording vote %d by %s on %s by %s' %
+                    (choice, votersha, self.title, self.author))
+                # Close poll:
+                if self.vote_count >= self.maxvoters:
+                    self.active = False
+                    self._logger.debug('Poll hit maxvoters, closing')
+                if self.activity.poll_session:
+                    # We are shared so we can send the Vote signal if I voted
+                    if votersha == self.nick_sha1:
+                        self._logger.debug(
+                            'Shared, I voted so sending signal')
+                        self.activity.poll_session.Vote(
+                            self.author, self.title, choice, votersha)
+            else:
+                raise OverflowError, 'Poll reached maxvoters'
+        else:
+            raise ValueError, 'Poll closed'
+            # FIXME: What happens when exception raised?
 
 
 class PollSession(ExportedGObject):
@@ -1279,8 +1401,11 @@ class PollSession(ExportedGObject):
 
     def participant_change_cb(self, added, removed):
         """Callback when tube participants change."""
-        self._logger.debug('Adding participants: %r' % added)
-        self._logger.debug('Removing participants: %r' % removed)
+        self._logger.debug('In participant_change_cb')
+        if added:
+            self._logger.debug('Adding participants: %r' % added)
+        if removed:
+            self._logger.debug('Removing participants: %r' % removed)
         for handle, bus_name in added:
             buddy = self._get_buddy(handle)
             if buddy is not None:
@@ -1289,24 +1414,92 @@ class PollSession(ExportedGObject):
             buddy = self._get_buddy(handle)
             if buddy is not None:
                 self._logger.debug('Buddy %s was removed' % buddy.props.nick)
-            try:
-                self.ordered_bus_names.remove(self.tube.participants[handle])
-            except ValueError:
-                # already absent
-                pass
+                # Set buddy's polls to not active so I can't vote on them
+                for poll in self.activity._polls:
+                    if poll.author == buddy.props.nick:
+                        poll.active = False
+                        self._logger.debug(
+                            'Closing poll %s of %s who just left.' %
+                            (poll.title, poll.author))
+
+        # FIXME: Should the below not go into __init__?
         if not self.entered:
             #self.tube.add_signal_receiver(self.insert_cb, 'Insert', IFACE,
             #    path=PATH, sender_keyword='sender')
             if self.is_initiator:
                 self._logger.debug("I'm initiating the tube, will "
                     "watch for hellos.")
-                self.add_hello_handler()
-                self.ordered_bus_names = [self.tube.get_unique_name()]
             else:
-                self._logger.debug('Hello, everyone! What did I miss?')
+                self._logger.debug('Joining, sending Hello')
                 self.Hello()
-        self.entered = True
+            self.tube.add_signal_receiver(self.hello_cb, 'Hello', IFACE,
+                path=PATH, sender_keyword='sender')
+            self.tube.add_signal_receiver(self.vote_cb, 'Vote', IFACE,
+                path=PATH, sender_keyword='sender')
+            self.entered = True
 
+    @signal(dbus_interface=IFACE, signature='')
+    def Hello(self):
+        """Request that my UpdatePoll method is called to let me know about
+        other known polls.
+        """
+
+    @signal(dbus_interface=IFACE, signature='ssus')
+    def Vote(self, author, title, choice, votersha):
+        """Send my vote on author's poll.
+
+        author -- string, buddy name
+        title -- string, poll title
+        choice -- integer 0-4, selected vote
+        votersha -- string, sha1 of voter's nick
+        """
+
+    def hello_cb(self, sender=None):
+        """Tell the newcomer what's going on."""
+        self._logger.debug('Newcomer %s has joined and sent Hello', sender)
+        for poll in self.activity.get_my_polls():
+            #self.tube.get_object(sender, PATH).UpdatePoll(
+            #    poll.title, poll.author, int(poll.active),
+            #    poll.createdate.toordinal(),
+            #    poll.maxvoters, poll.question, poll.number_of_options,
+            #    poll.options, poll.data, poll.votes, dbus_interface=IFACE)
+            t = self.tube.get_object(sender, PATH).SendTitle(poll.title)
+            self._logger.debug('SendTitle: Sent %s, received %s' %
+                               (poll.title, t))
+
+    def vote_cb(self, author, title, choice, votersha, sender=None):
+        """Receive somebody's vote signal.
+
+        author -- string, buddy name
+        title -- string, poll title
+        choice -- integer 0-4, selected vote
+        votersha -- string, sha1 hash of voter nick
+        """
+        # FIXME: validate the choices, set the vote.
+        # XXX We could possibly get the nick of sender and sha1 it
+        #     to verify the vote is coming from the voter.
+        self._logger.debug('In vote_cb. sender: %r' % sender)
+        self._logger.debug('%s voted %d on %s by %s' % (votersha, choice,
+                                                        title, author))
+        self.activity.vote_on_poll(author, title, choice, votersha)
+
+    @method(dbus_interface=IFACE, in_signature='ssuuusua{us}a{uu}a{su}',
+            out_signature='')
+    def UpdatePoll(self, title, author, active, createdate_i, maxvoters,
+                   question, number_of_options, options, data, votes):
+        """To be called on the incoming buddy by the other participants
+        to inform you of their polls and state."""
+        poll = Poll(self.activity, title, author, active, 
+                    date.fromordinal(int(createdate_i)),
+                    maxvoters, question, number_of_options, options,
+                    data, votes)
+        self.activity.journal_index_add_poll(poll)
+
+    @method(dbus_interface=IFACE, in_signature='s', out_signature='s')
+    def SendTitle(self, title):
+        """Testing"""
+        self._logger.debug('*** Received %s ***' % title)
+        return title
 
 
 def justify(textdict, choice):
