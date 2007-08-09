@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
-import pickle
+import cPickle
 import gtk
 import hippo
 import pango
@@ -173,19 +173,10 @@ class PollBuilder(activity.Activity):
 
         self._basepath = activity.get_bundle_path()
         os.chdir(self._basepath)  # required for i18n.py to work
-        self.journal_path = os.path.join(os.path.expanduser("~"), "Journal", "poll-builder", self.nick)
-        if (not os.path.exists(self.journal_path)):
-            os.makedirs(self.journal_path)
-        self.journal_index = os.path.join(self.journal_path, 'pollindex.txt')
 
-        self._journal_index_load()
-
-        # setup poll with default if journal index empty
-        if self._polls_index == {}:
-            self._make_default_poll()
-            self._write_to_journal(update_index=True)
-        else:
-            self._make_blank_poll()
+        # setup example poll
+        self._polls = set()
+        self._make_default_poll()
         self._has_voted = False
         self._preview = False
         self._current_view = None  # so we can switch back
@@ -216,6 +207,48 @@ class PollBuilder(activity.Activity):
             if self.get_shared():
                 # we've already joined
                 self._joined_cb()
+
+    def read_file(self, file_path):
+        """Implement reading from journal
+        
+        This is called within sugar.activity.Activity code
+        which provides file_path.
+        """
+        self._logger.debug('Reading file from datastore via Journal: %s' %
+                           file_path)
+        self._polls = set()
+        f = open(file_path, 'r')
+        num_polls = cPickle.load(f)
+        for p in range(num_polls):
+            title = cPickle.load(f)
+            author = cPickle.load(f)
+            active = cPickle.load(f)
+            createdate_i = cPickle.load(f)
+            maxvoters = cPickle.load(f)
+            question = cPickle.load(f)
+            number_of_options = cPickle.load(f)
+            options = cPickle.load(f)
+            data = cPickle.load(f)
+            votes = cPickle.load(f)
+            poll = Poll(self, title, author, active, 
+                        date.fromordinal(int(createdate_i)),
+                        maxvoters, question, number_of_options, options,
+                        data, votes)
+            self._polls.add(poll)
+        f.close()
+
+    def write_file(self, file_path):
+        """Implement writing to the journal
+
+        This is called within sugar.activity.Activity code
+        which provides the file_path.
+        """
+        s = cPickle.dumps(len(self._polls))
+        for poll in self._polls:
+            s += poll.dump()
+        f = open(file_path, 'w')
+        f.write(s)
+        f.close()
 
     def _poll_canvas(self):
         """Show the poll canvas where children vote on an existing poll."""
@@ -290,8 +323,8 @@ class PollBuilder(activity.Activity):
         poll_details_box.append(poll_selector_box)  # XXX scrolledwindow?
 
         row_number = 0
-        for sha in self._polls_index.keys():
-            poll = self._polls_index[sha]
+        for poll in self._polls:
+            sha = poll.sha
             if row_number % 2:
                 row_bgcolor=color.WHITE.get_int()
             else:
@@ -308,7 +341,7 @@ class PollBuilder(activity.Activity):
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             poll_row.append(sized_box)
             title = hippo.CanvasText(
-                text=poll['title']+' ('+poll['author']+')',
+                text=poll.title+' ('+poll.author+')',
                 xalign=hippo.ALIGNMENT_START,
                 color=color.HTMLColor(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 10'))
@@ -318,7 +351,7 @@ class PollBuilder(activity.Activity):
                 box_width=180,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             poll_row.append(sized_box)
-            if poll['active']:
+            if poll.active:
                 button = gtk.Button(_('VOTE'))
             else:
                 button = gtk.Button(_('SEE RESULTS'))
@@ -329,12 +362,12 @@ class PollBuilder(activity.Activity):
                 box_width=150,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             poll_row.append(sized_box)
-            if poll['author'] == self._pservice.get_owner().props.nick:
+            if poll.author == self._pservice.get_owner().props.nick:
                 button = gtk.Button(_('DELETE'))
                 button.connect('clicked', self._delete_poll_button_cb, sha)
                 sized_box.append(hippo.CanvasWidget(widget=theme_button(button)))
             poll_row.append(hippo.CanvasText(
-                text=poll['createdate'].strftime('%d/%m/%y'),
+                text=poll.createdate.strftime('%d/%m/%y'),
                 color=color.HTMLColor(DARK_GREEN).get_int()))
 
         button_box = self._canvas_buttonbox(button_to_highlight=2)
@@ -393,9 +426,27 @@ class PollBuilder(activity.Activity):
         if not sha:
             self._logger.debug('Strange, which button was clicked?')
             return
-        self._journal_index_del(sha)
+        self.delete_poll(sha)
         self._canvas.set_root(self._select_canvas())
         self.show_all()
+
+    def delete_poll(self, sha=None, poll=None):
+        """Delete a poll, either by passing sha or the actual poll object.
+
+        sha -- string, sha property of the poll
+        poll -- Poll
+        """
+        if poll:
+            if self._poll == poll:
+                self._make_blank_poll
+            self._polls.remove(poll)
+        if sha:
+            if self._poll.sha == sha:
+                self._logger.debug('delete_poll: removing current poll')
+                self._make_blank_poll()
+            for poll in self._polls.copy():
+                if poll.sha == sha:
+                    self._polls.remove(poll)
         
     def draw_poll_details_box(self):
         """(Re)draw the poll details box
@@ -450,8 +501,9 @@ class PollBuilder(activity.Activity):
 
             # show results if the user has just voted,
             # unless the poll is closed - then show it straight away
-            if votes_total > 0 and ((self._poll.active and self._has_voted) or
-                                    not self._poll.active):
+#            if votes_total > 0 and ((self._poll.active and self._has_voted) or
+#                                    not self._poll.active):
+            if votes_total > 0:
                 # show results
                 self._logger.debug(str(self._poll.data[choice] * 1.0 / votes_total))
                 result_box = hippo.CanvasBox(
@@ -529,7 +581,7 @@ class PollBuilder(activity.Activity):
                 padding = 8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             button = gtk.Button(_("Vote"))
-            button.connect('clicked', self.button_vote_clicked)
+            button.connect('clicked', self._button_vote_cb)
             button_box.append(hippo.CanvasWidget(widget=theme_button(button)))
             poll_details_box.append(button_box)
         elif self._preview:
@@ -552,7 +604,7 @@ class PollBuilder(activity.Activity):
         """
         self.current_vote = data
 
-    def button_vote_clicked(self, button):
+    def _button_vote_cb(self, button):
         """Register a vote
 
         Take the selected option from self.current_vote
@@ -568,8 +620,6 @@ class PollBuilder(activity.Activity):
             self._poll.register_vote(self.current_vote, self.nick_sha1)
             self._logger.debug('Results: '+str(self._poll.data))
             self.draw_poll_details_box()
-            # Update index when writing as poll may have closed:
-            self._write_to_journal(update_index=True)
 
     def button_select_clicked(self, button):
         """Show Choose a Poll canvas"""
@@ -578,11 +628,7 @@ class PollBuilder(activity.Activity):
 
     def button_new_clicked(self, button):
         """Show Build a Poll canvas.
-
-        Make sure current poll is saved.
         """
-        if self._poll.title:
-            self._write_to_journal(update_index=True)
         # Reset vote data to 0
         self._make_blank_poll()
         owner = self._pservice.get_owner()
@@ -716,7 +762,8 @@ class PollBuilder(activity.Activity):
         # Data OK
         self._preview = False
         self._poll.active = True
-        self._write_to_journal(update_index=True)
+        self._polls.add(self._poll)
+        self._poll.broadcast_on_mesh()
         self._canvas.set_root(self._poll_canvas())
         self.show_all()
 
@@ -750,7 +797,7 @@ class PollBuilder(activity.Activity):
             options = {0: _('Green'), 1: _('Red'), 2: _('Blue'),
                 3: _('Orange'), 4: _('None of the above')})
         self.current_vote = None
-        self._journal_index_add()
+        self._polls.add(self._poll)
 
     def _validate(self):
         failed_items = []
@@ -778,97 +825,6 @@ class PollBuilder(activity.Activity):
             self._poll.number_of_options = 5
         return failed_items
             
-    def _write_to_journal(self, update_index=False):
-        """Write current poll to journal.
-        
-        Pass update_index=True if you need to make sure
-        this poll is in the journal index file. For example,
-        when creating a new poll.
-        """
-        sha = self._get_sha()
-        filename = os.path.join(self.journal_path, sha)
-        f = open(filename, 'w')
-        pickle.dump(self._poll.title, f)
-        pickle.dump(self._poll.author, f)
-        pickle.dump(self._poll.active, f)
-        pickle.dump(self._poll.createdate, f)
-        pickle.dump(self._poll.maxvoters, f)
-        pickle.dump(self._poll.question, f)
-        pickle.dump(self._poll.number_of_options, f)
-        pickle.dump(self._poll.options, f)
-        pickle.dump(self._poll.data, f)
-        f.close()
-        if update_index:
-            self._journal_index_add()
-
-    def write_poll(self, poll, update_index=False):
-        """Write a poll received over the mesh, to file.
-        
-        poll -- Poll
-        
-        Pass update_index=True if you need to make sure
-        this poll is in the journal index file. For example,
-        when creating a new poll.
-        """
-        sha = poll.sha
-        filename = os.path.join(self.journal_path, sha)
-        f = open(filename, 'w')
-        pickle.dump(poll.title, f)
-        pickle.dump(poll.author, f)
-        pickle.dump(poll.active, f)
-        pickle.dump(poll.createdate, f)
-        pickle.dump(poll.maxvoters, f)
-        pickle.dump(poll.question, f)
-        pickle.dump(poll.number_of_options, f)
-        pickle.dump(poll.options, f)
-        pickle.dump(poll.data, f)
-        f.close()
-        if update_index:
-            self.journal_index_add_poll(poll)
-
-    def _journal_index_add(self):
-        """Write the current poll to the journal index."""
-        self._polls.add(self._poll)
-        # insert self
-        self._polls_index[self._get_sha()] = {
-            'title': self._poll.title,
-            'author': self._poll.author,
-            'active': self._poll.active,
-            'createdate': self._poll.createdate,
-        }
-        # write index
-        self._journal_index_write()
-
-    def journal_index_add_poll(self, poll):
-        """Write a poll to the journal index."""
-        self._polls.add(poll)
-        self._polls_index[poll.sha] = {
-            'title': poll.title,
-            'author': poll.author,
-            'active': poll.active,
-            'createdate': poll.createdate,
-        }
-        # write index
-        self._journal_index_write()
-
-    def _journal_index_del(self, sha):
-        """Delete a poll from the journal index."""
-        # XXX Assumes that the poll is not selected as the current poll
-        # or that we don't care since you have to select another poll
-        # from the screen that displays the del buttons anyway
-        if self._polls_index[sha]['author'] != self.nick:
-            _logger.debug('Could not delete poll %s: you are not author' %
-                sha)
-            return
-        if self._poll.sha == sha:
-            # Make sure the current poll is not invalid:
-            self._make_blank_poll()
-        for poll in self._polls:
-            if poll.sha == sha:
-                self._polls.remove(poll)
-        del self._polls_index[sha]
-        self._journal_index_write()
-
     def _get_sha(self):
         """Return a sha1 hash of something about this poll.
         
@@ -878,77 +834,14 @@ class PollBuilder(activity.Activity):
         """
         return self._poll.sha
     
-    def _journal_index_load(self):
-        """Load the journal index of saved polls."""
-        self._polls_index = {}
-        self._polls = set() # the saved Polls
-        try:
-            lines = open(self.journal_index).readlines()
-        except IOError:  # File does not exist
-            lines = []
-        for line in lines:
-            try:
-                title, author, active, createdate, sha =\
-                    line.strip().split('\t')
-            except ValueError:
-                # incompatible file format change
-                self._logger.debug('Loading journal index file failed, resetting')
-                continue
-            self._polls_index[sha] = {
-                'title': title,
-                'author': author,
-                'active': int(active),
-                'createdate': date.fromordinal(int(createdate)),
-                }
-            self._polls.add(self._load_from_journal(sha))
-
-    def _journal_index_write(self):
-        """Write the journal file."""
-        # XXX Need to validate self._polls_index!
-        f = open(self.journal_index, 'w')
-        for sha in self._polls_index:
-            f.write('%s\t%s\t%d\t%d\t%s\n' % 
-                    (self._polls_index[sha]['title'],
-                     self._polls_index[sha]['author'],
-                     self._polls_index[sha]['active'],
-                     self._polls_index[sha]['createdate'].toordinal(),
-                     sha))
-        f.close()
-
     def _switch_to_poll(self, sha):
-        """Load from journal based on the sha
+        """Set self._poll to the specified poll with sha
 
-        The sha comes from the index file.
+        sha -- string
         """
         for poll in self._polls:
             if poll.sha == sha:
                 self._poll = poll
-
-    def _load_from_journal(self, sha):
-        """Load from journal based on the sha
-
-        The sha comes from the index file.
-        Returns a Poll.
-        """
-        filename = os.path.join(self.journal_path, sha)
-        f = open(filename)
-        title = pickle.load(f)
-        author = pickle.load(f)
-        active = pickle.load(f)
-        createdate = pickle.load(f)
-        maxvoters = pickle.load(f)
-        question = pickle.load(f)
-        number_of_options = pickle.load(f)
-        options = pickle.load(f)
-        data = pickle.load(f)
-        try:
-            votes = pickle.load(f)
-        except:
-            # XXX Perhaps we need dummy data in this?
-            votes = {'foo': 0}
-        f.close()
-        return Poll(self, title, author, active, createdate, maxvoters,
-                    question, number_of_options, options, data, votes)
 
     def get_my_polls(self):
         """Return list of Polls for all polls I created."""
@@ -1325,6 +1218,36 @@ class Poll:
         self._logger = logging.getLogger('poll-activity.Poll')
         self._logger.debug('Creating Poll(%s by %s)' % (title, author))
 
+    def dump(self):
+        """Dump a pickled version for the journal"""
+        # The attributes may be dbus types. These are not serialisable
+        # with pickle at the moment, so convert them to builtin types.
+        # Pay special attention to dicts - we need to convert the keys
+        # and values too.
+        s = cPickle.dumps(str(self.title))
+        s += cPickle.dumps(str(self.author))
+        s += cPickle.dumps(bool(self.active))
+        s += cPickle.dumps(self.createdate.toordinal())
+        s += cPickle.dumps(int(self.maxvoters))
+        s += cPickle.dumps(str(self.question))
+        s += cPickle.dumps(int(self.number_of_options))
+        options = {}
+        for key in self.options:
+            value = self.options[key]
+            options[int(key)] = str(value)
+        data = {}
+        for key in self.data:
+            value = self.data[key]
+            data[int(key)] = int(value)
+        votes = {}
+        for key in self.votes:
+            value = self.votes[key]
+            votes[str(key)] = int(value)
+        s += cPickle.dumps(options)
+        s += cPickle.dumps(data)
+        s += cPickle.dumps(votes)
+        return s
+
     @property
     def vote_count(self):
         """Return the total votes cast."""
@@ -1367,7 +1290,7 @@ class Poll:
                     self._logger.debug('Poll hit maxvoters, closing')
                 if self.activity.poll_session:
                     # We are shared so we can send the Vote signal if I voted
-                    if votersha == self.nick_sha1:
+                    if votersha == self.activity.nick_sha1:
                         self._logger.debug(
                             'Shared, I voted so sending signal')
                         self.activity.poll_session.Vote(
@@ -1377,6 +1300,15 @@ class Poll:
         else:
             raise ValueError, 'Poll closed'
             # FIXME: What happens when exception raised?
+
+    def broadcast_on_mesh(self):
+        if self.activity.poll_session:
+            # We are shared so we can broadcast this poll
+            self.activity.poll_session.UpdatedPoll(
+                self.title, self.author, self.active,
+                self.createdate.toordinal(),
+                self.maxvoters, self.question, self.number_of_options,
+                self.options, self.data, self.votes) 
 
 
 class PollSession(ExportedGObject):
@@ -1422,13 +1354,9 @@ class PollSession(ExportedGObject):
                             'Closing poll %s of %s who just left.' %
                             (poll.title, poll.author))
 
-        # FIXME: Should the below not go into __init__?
         if not self.entered:
-            #self.tube.add_signal_receiver(self.insert_cb, 'Insert', IFACE,
-            #    path=PATH, sender_keyword='sender')
             if self.is_initiator:
-                self._logger.debug("I'm initiating the tube, will "
-                    "watch for hellos.")
+                self._logger.debug("I'm initiating the tube")
             else:
                 self._logger.debug('Joining, sending Hello')
                 self.Hello()
@@ -1436,6 +1364,11 @@ class PollSession(ExportedGObject):
                 path=PATH, sender_keyword='sender')
             self.tube.add_signal_receiver(self.vote_cb, 'Vote', IFACE,
                 path=PATH, sender_keyword='sender')
+            self.tube.add_signal_receiver(self.helloback_cb, 'HelloBack',
+                IFACE, path=PATH, sender_keyword='sender')
+            self.tube.add_signal_receiver(self.updatedpoll_cb, 
+                'UpdatedPoll', IFACE, path=PATH, sender_keyword='sender')
+            self.my_bus_name = self.tube.get_unique_name()
             self.entered = True
 
     @signal(dbus_interface=IFACE, signature='')
@@ -1454,18 +1387,101 @@ class PollSession(ExportedGObject):
         votersha -- string, sha1 of voter's nick
         """
 
+    @signal(dbus_interface=IFACE, signature='s')
+    def HelloBack(self, recipient):
+        """Respond to Hello.
+
+        recipient -- string, sender of Hello.
+        """
+
+    @signal(dbus_interface=IFACE, signature='ssuuusua{us}a{uu}a{su}')
+    def UpdatedPoll(self, title, author, active, createdate, maxvoters,
+                   question, number_of_options, options, data, votes):
+        """Broadcast a new poll to the mesh."""
+
     def hello_cb(self, sender=None):
         """Tell the newcomer what's going on."""
+        assert sender is not None
         self._logger.debug('Newcomer %s has joined and sent Hello', sender)
+        # sender is a bus name - check if it's me:
+        if sender == self.my_bus_name:
+            # then I don't want to respond to my own Hello
+            return
+        self._logger.debug('Telling %s to send me their polls', sender)
+        # FIXME: Ask for polls back
+        #self.tube.get_object(sender, PATH).PollsWanted(self.my_bus_name,
+        #                                               dbus_interface=IFACE)
+        # Send my polls
         for poll in self.activity.get_my_polls():
-            #self.tube.get_object(sender, PATH).UpdatePoll(
-            #    poll.title, poll.author, int(poll.active),
-            #    poll.createdate.toordinal(),
-            #    poll.maxvoters, poll.question, poll.number_of_options,
-            #    poll.options, poll.data, poll.votes, dbus_interface=IFACE)
-            t = self.tube.get_object(sender, PATH).SendTitle(poll.title)
-            self._logger.debug('SendTitle: Sent %s, received %s' %
-                               (poll.title, t))
+            self._logger.debug('Telling %s about my %s' % 
+                               (sender, poll.title))
+            self.tube.get_object(sender, PATH).UpdatePoll(
+                poll.title, poll.author, int(poll.active),
+                poll.createdate.toordinal(),
+                poll.maxvoters, poll.question, poll.number_of_options,
+                poll.options, poll.data, poll.votes, dbus_interface=IFACE)
+        self.HelloBack(sender)
+
+    def helloback_cb(self, recipient, sender):
+        """Reply to Hello.
+        
+        recipient -- string, the XO who send the original Hello.
+        
+        Other XOs should ignore this signal.
+        """
+        self._logger.debug('*** In helloback_cb: recipient: %s, sender: %s' %
+                           (recipient, sender))
+        if sender == self.my_bus_name:
+            # Ignore my own signal
+            return
+        if recipient != self.my_bus_name:
+            # This is not for me
+            return
+        self._logger.debug('*** It was for me, so sending my polls back.')
+        for poll in self.activity.get_my_polls():
+            self._logger.debug('Telling %s about my %s' % 
+                               (sender, poll.title))
+            self.tube.get_object(sender, PATH).UpdatePoll(
+                poll.title, poll.author, int(poll.active),
+                poll.createdate.toordinal(),
+                poll.maxvoters, poll.question, poll.number_of_options,
+                poll.options, poll.data, poll.votes, dbus_interface=IFACE)
+
+    def updatedpoll_cb(self, title, author, active, createdate, maxvoters,
+                       question, number_of_options, options_d, data_d,
+                       votes_d, sender):
+        """Handle an UpdatedPoll signal by creating a new Poll."""
+        self._logger.debug('Received UpdatedPoll from %s' % sender)
+        if sender == self.my_bus_name:
+            # Ignore my own signal
+            return
+        # We get the parameters as dbus types. These are not serialisable
+        # with pickle at the moment, so convert them to builtin types.
+        # Pay special attention to dicts - we need to convert the keys
+        # and values too.
+        title = str(title)
+        author = str(author)
+        active = bool(active)
+        createdate = date.fromordinal(int(createdate))
+        maxvoters = int(maxvoters)
+        question = str(question)
+        number_of_options = int(number_of_options)
+        options = {}
+        for key in options_d:
+            value = options_d[key]
+            options[int(key)] = str(value)
+        data = {}
+        for key in data_d:
+            value = data_d[key]
+            data[int(key)] = int(value)
+        votes = {}
+        for key in votes_d:
+            value = votes_d[key]
+            votes[str(key)] = int(value)
+        poll = Poll(self.activity, title, author, active, 
+                    createdate, maxvoters, question, number_of_options,
+                    options, data, votes)
+        self.activity._polls.add(poll)
 
     def vote_cb(self, author, title, choice, votersha, sender=None):
         """Receive somebody's vote signal.
@@ -1478,6 +1494,9 @@ class PollSession(ExportedGObject):
         # FIXME: validate the choices, set the vote.
         # XXX We could possibly get the nick of sender and sha1 it
         #     to verify the vote is coming from the voter.
+        if sender == self.my_bus_name:
+            # Don't respond to my own Vote signal
+            return
         self._logger.debug('In vote_cb. sender: %r' % sender)
         self._logger.debug('%s voted %d on %s by %s' % (votersha, choice,
                                                         title, author))
@@ -1485,21 +1504,47 @@ class PollSession(ExportedGObject):
 
     @method(dbus_interface=IFACE, in_signature='ssuuusua{us}a{uu}a{su}',
             out_signature='')
-    def UpdatePoll(self, title, author, active, createdate_i, maxvoters,
-                   question, number_of_options, options, data, votes):
+    def UpdatePoll(self, title, author, active, createdate, maxvoters,
+                   question, number_of_options, options_d, data_d, votes_d):
         """To be called on the incoming buddy by the other participants
         to inform you of their polls and state."""
+        # We get the parameters as dbus types. These are not serialisable
+        # with pickle at the moment, so convert them to builtin types.
+        # Pay special attention to dicts - we need to convert the keys
+        # and values too.
+        title = str(title)
+        author = str(author)
+        active = bool(active)
+        createdate = date.fromordinal(int(createdate))
+        maxvoters = int(maxvoters)
+        question = str(question)
+        number_of_options = int(number_of_options)
+        options = {}
+        for key in options_d:
+            value = options_d[key]
+            options[int(key)] = str(value)
+        data = {}
+        for key in data_d:
+            value = data_d[key]
+            data[int(key)] = int(value)
+        votes = {}
+        for key in votes_d:
+            value = votes_d[key]
+            votes[str(key)] = int(value)
         poll = Poll(self.activity, title, author, active, 
-                    date.fromordinal(int(createdate_i)),
-                    maxvoters, question, number_of_options, options,
-                    data, votes)
-        self.activity.journal_index_add_poll(poll)
+                    createdate, maxvoters, question, number_of_options,
+                    options, data, votes)
+        self.activity._polls.add(poll)
 
-    @method(dbus_interface=IFACE, in_signature='s', out_signature='s')
-    def SendTitle(self, title):
-        """Testing"""
-        self._logger.debug('*** Received %s ***' % title)
-        return title
+    @method(dbus_interface=IFACE, in_signature='s', out_signature='')
+    def PollsWanted(self, sender):
+        """Notification to send my polls to sender."""
+        for poll in self.activity.get_my_polls():
+            self.tube.get_object(sender, PATH).UpdatePoll(
+                poll.title, poll.author, int(poll.active),
+                poll.createdate.toordinal(),
+                poll.maxvoters, poll.question, poll.number_of_options,
+                poll.options, poll.data, poll.votes, dbus_interface=IFACE)
 
 
 def justify(textdict, choice):
