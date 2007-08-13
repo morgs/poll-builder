@@ -41,7 +41,7 @@ from sugar.activity import activity
 from sugar.graphics import color
 from sugar.graphics.units import points_to_pixels as px
 from sugar.presence import presenceservice
-#from abiword import Canvas as AbiCanvas
+from abiword import Canvas as AbiCanvas
 from i18n import LanguageComboBox
 
 SERVICE = "org.worldwideworkshop.PollBuilder"
@@ -401,10 +401,10 @@ class PollBuilder(activity.Activity):
             orientation=hippo.ORIENTATION_VERTICAL)
         mainbox.append(poll_details_box)
 
-        #lessonplan = LessonPlanWidget(self._basepath)
-        #lessonplan.set_size_request(1050, 500)
-        #poll_details_box.append(hippo.CanvasWidget(widget=lessonplan),
-        #                        hippo.PACK_EXPAND)
+        lessonplan = LessonPlanWidget(self._basepath)
+        lessonplan.set_size_request(1050, 500)
+        poll_details_box.append(hippo.CanvasWidget(widget=lessonplan),
+                                hippo.PACK_EXPAND)
 
         button_box = self._canvas_buttonbox()
         mainbox.append(button_box, hippo.PACK_END)
