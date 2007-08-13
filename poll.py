@@ -1407,10 +1407,6 @@ class PollSession(ExportedGObject):
         if sender == self.my_bus_name:
             # then I don't want to respond to my own Hello
             return
-        self._logger.debug('Telling %s to send me their polls', sender)
-        # FIXME: Ask for polls back
-        #self.tube.get_object(sender, PATH).PollsWanted(self.my_bus_name,
-        #                                               dbus_interface=IFACE)
         # Send my polls
         for poll in self.activity.get_my_polls():
             self._logger.debug('Telling %s about my %s' % 
@@ -1420,6 +1416,7 @@ class PollSession(ExportedGObject):
                 poll.createdate.toordinal(),
                 poll.maxvoters, poll.question, poll.number_of_options,
                 poll.options, poll.data, poll.votes, dbus_interface=IFACE)
+        # Ask for other's polls back
         self.HelloBack(sender)
 
     def helloback_cb(self, recipient, sender):
