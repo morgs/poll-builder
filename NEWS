@@ -1,3 +1,5 @@
+* Remove self.set_title - allows title to be changed (morgs)
+
 6
 
 * Re-enable lesson plans (morgs)

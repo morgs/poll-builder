@@ -181,8 +181,6 @@ class PollBuilder(activity.Activity):
         self._preview = False
         self._current_view = None  # so we can switch back
 
-        self.set_title(_('Poll Builder'))
-
         toolbox = activity.ActivityToolbox(self)
         self.set_toolbox(toolbox)
         toolbox.show()
