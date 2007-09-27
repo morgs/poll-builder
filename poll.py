@@ -29,7 +29,7 @@ import telepathy.client
 from dbus import Interface
 from dbus.service import method, signal
 from dbus.gobject_service import ExportedGObject
-from tubeconn import TubeConnection
+from sugar.presence.tubeconn import TubeConnection
 
 try:
     from hashlib import sha1
