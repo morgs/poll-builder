@@ -1,3 +1,4 @@
+* #3138: Apply sugar.graphics API change (morgs)
 * Remove self.set_title - allows title to be changed (morgs)
 
 6

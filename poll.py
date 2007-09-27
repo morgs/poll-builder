@@ -38,8 +38,7 @@ except ImportError:
     from sha import new as sha1
 
 from sugar.activity import activity
-from sugar.graphics import color
-from sugar.graphics.units import points_to_pixels as px
+from sugar.graphics import style
 from sugar.presence import presenceservice
 from abiword import Canvas as AbiCanvas
 from i18n import LanguageComboBox
@@ -268,9 +267,9 @@ class PollBuilder(activity.Activity):
             mainbox.append(self._text_mainbox(_('Poll Preview')))
 
         poll_details_box = hippo.CanvasBox(spacing=8,
-            background_color=color.WHITE.get_int(),
+            background_color=style.COLOR_WHITE.get_int(),
             border=4,
-            border_color=color.HTMLColor(PINK).get_int(),
+            border_color=style.Color(PINK).get_int(),
             padding=20,
             xalign=hippo.ALIGNMENT_START,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -302,9 +301,9 @@ class PollBuilder(activity.Activity):
         mainbox.append(self._text_mainbox(_('Choose a Poll')))
 
         poll_details_box = hippo.CanvasBox(spacing=8,
-            background_color=color.WHITE.get_int(),
+            background_color=style.COLOR_WHITE.get_int(),
             border=4,
-            border_color=color.HTMLColor(PINK).get_int(),
+            border_color=style.Color(PINK).get_int(),  # XXXX
             padding=20,
             xalign=hippo.ALIGNMENT_START,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -324,9 +323,9 @@ class PollBuilder(activity.Activity):
         for poll in self._polls:
             sha = poll.sha
             if row_number % 2:
-                row_bgcolor=color.WHITE.get_int()
+                row_bgcolor=style.COLOR_WHITE.get_int()
             else:
-                row_bgcolor=color.DESKTOP_BACKGROUND.get_int()
+                row_bgcolor=style.COLOR_SELECTION_GREY.get_int()
             row_number += 1
             poll_row = hippo.CanvasBox(
                 padding_top=4, padding_bottom=4,
@@ -341,7 +340,7 @@ class PollBuilder(activity.Activity):
             title = hippo.CanvasText(
                 text=poll.title+' ('+poll.author+')',
                 xalign=hippo.ALIGNMENT_START,
-                color=color.HTMLColor(DARK_GREEN).get_int(),
+                color=style.Color(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 10'))
             sized_box.append(title)
 
@@ -366,7 +365,7 @@ class PollBuilder(activity.Activity):
                 sized_box.append(hippo.CanvasWidget(widget=theme_button(button)))
             poll_row.append(hippo.CanvasText(
                 text=poll.createdate.strftime('%d/%m/%y'),
-                color=color.HTMLColor(DARK_GREEN).get_int()))
+                color=style.Color(DARK_GREEN).get_int()))
 
         button_box = self._canvas_buttonbox(button_to_highlight=2)
         mainbox.append(button_box, hippo.PACK_END)
@@ -391,9 +390,9 @@ class PollBuilder(activity.Activity):
         mainbox.append(self._text_mainbox(_('Lesson Plans')))
 
         poll_details_box = hippo.CanvasBox(spacing=8,
-            background_color=color.WHITE.get_int(),
+            background_color=style.COLOR_WHITE.get_int(),
             border=4,
-            border_color=color.HTMLColor(PINK).get_int(),
+            border_color=style.Color(PINK).get_int(),
             padding=20,
             xalign=hippo.ALIGNMENT_START,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -460,14 +459,14 @@ class PollBuilder(activity.Activity):
         title = hippo.CanvasText(
             text=self._poll.title,
             xalign=hippo.ALIGNMENT_START,
-            color=color.HTMLColor(DARK_GREEN).get_int(),
+            color=style.Color(DARK_GREEN).get_int(),
             font_desc = pango.FontDescription('Sans %d' % text_size))
         poll_details_box.append(title)
         text_size = self._size_heading_text(self._poll.question)
         question = hippo.CanvasText(
             text=self._poll.question,
             xalign=hippo.ALIGNMENT_START,
-            color=color.HTMLColor(DARK_GREEN).get_int(),
+            color=style.Color(DARK_GREEN).get_int(),
             font_desc = pango.FontDescription('Sans %d' % text_size))
         poll_details_box.append(question)
 
@@ -493,7 +492,7 @@ class PollBuilder(activity.Activity):
             else:
                 sized_box.append(hippo.CanvasText(
                     text=self._poll.options[choice],
-                    color=color.HTMLColor(DARK_GREEN).get_int(),
+                    color=style.Color(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans %d' %
                         self._size_answer_text(choice))))
 
@@ -512,18 +511,18 @@ class PollBuilder(activity.Activity):
                     #text=str(self._poll.data[choice]),
                     text=justify(self._poll.data, choice),
                     xalign=hippo.ALIGNMENT_END,
-                    color=color.HTMLColor(DARK_GREEN).get_int(),
+                    color=style.Color(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans 12')))
                 # int(self._poll.data[choice] * 1.0 / votes_total * 20) * '*',
                 # APPEND BARGRAPH TO result_box
                 graphbox = hippo.CanvasBox(
                     orientation=hippo.ORIENTATION_HORIZONTAL,
-                    background_color=color.HTMLColor(PINK).get_int(),
+                    background_color=style.Color(PINK).get_int(),
                     box_width=int(self._poll.data[choice] * 1.0 / votes_total * 20) * 20)
                 answer_row.append(graphbox)
                 answer_row.append(hippo.CanvasText(
                     text=str(self._poll.data[choice] * 100 / votes_total)+'%',
-                    color=color.HTMLColor(DARK_GREEN).get_int(),
+                    color=style.Color(DARK_GREEN).get_int(),
                     font_desc=pango.FontDescription('Sans 10')))
 
             poll_details_box.append(answer_row)
@@ -539,7 +538,7 @@ class PollBuilder(activity.Activity):
                 box_width=430, orientation=hippo.ORIENTATION_HORIZONTAL)
             line_box.append(spacer)
             line = hippo.CanvasBox(
-                background_color=color.HTMLColor(DARK_GREEN).get_int(),
+                background_color=style.Color(DARK_GREEN).get_int(),
                 box_width=600,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             line_box.append(line)
@@ -558,19 +557,19 @@ class PollBuilder(activity.Activity):
             spacer.append(hippo.CanvasText(
                 text=str(votes_total),
                 xalign=hippo.ALIGNMENT_END,
-                color=color.HTMLColor(DARK_GREEN).get_int(),
+                color=style.Color(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 12')))
             totals_box.append(spacer)
             totals_box.append(hippo.CanvasText(
                 text=' '+_('votes'),
                 xalign=hippo.ALIGNMENT_START,
-                color=color.HTMLColor(DARK_GREEN).get_int(),
+                color=style.Color(DARK_GREEN).get_int(),
                 font_desc = pango.FontDescription('Sans 12')))
             if votes_total < self._poll.maxvoters:
                 totals_box.append(hippo.CanvasText(
                     text=' ('+str(self._poll.maxvoters-votes_total)+
                          ' votes left to collect)',
-                    color=color.HTMLColor(DARK_GREEN).get_int(),
+                    color=style.Color(DARK_GREEN).get_int(),
                     font_desc = pango.FontDescription('Sans 12')))
 
         # Button area
@@ -663,9 +662,9 @@ class PollBuilder(activity.Activity):
         mainbox.append(self._text_mainbox(_('Build a Poll')))
 
         poll_details_box = hippo.CanvasBox(spacing=8,
-            background_color=color.WHITE.get_int(),
+            background_color=style.COLOR_WHITE.get_int(),
             border=4,
-            border_color=color.HTMLColor(PINK).get_int(),
+            border_color=style.Color(PINK).get_int(),
             padding=20,
             xalign=hippo.ALIGNMENT_START,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -864,9 +863,9 @@ class PollBuilder(activity.Activity):
         Called from _poll_canvas, _select_canvas, _build_canvas
         """
         languageselectbox = hippo.CanvasBox(
-            background_color=color.HTMLColor(LIGHT_GREEN).get_int(),
+            background_color=style.Color(LIGHT_GREEN).get_int(),
             border_top=4, border_left=4,
-            border_color=color.HTMLColor(YELLOW).get_int(),
+            border_color=style.Color(YELLOW).get_int(),
             padding_top=12, padding_bottom=12,
             padding_left=100, padding_right=100,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -882,7 +881,7 @@ class PollBuilder(activity.Activity):
         """
         pollbuilderbox = hippo.CanvasBox(
             border=4,
-            border_color=color.HTMLColor(GRAY).get_int(),
+            border_color=style.Color(GRAY).get_int(),
             orientation=hippo.ORIENTATION_VERTICAL)
         return pollbuilderbox
 
@@ -892,8 +891,7 @@ class PollBuilder(activity.Activity):
         Called from _poll_canvas, _select_canvas, _build_canvas
         """
         canvasbox = hippo.CanvasBox(
-            background_color=color.DESKTOP_BACKGROUND.get_int(),
-            #padding = 100,
+            background_color=style.COLOR_SELECTION_GREY.get_int(),
             orientation=hippo.ORIENTATION_VERTICAL)
         return canvasbox
 
@@ -904,7 +902,7 @@ class PollBuilder(activity.Activity):
         lesson plan if the lesson plan button is clicked.
         """
         topbox = hippo.CanvasBox(
-            background_color=color.HTMLColor(LIGHT_GREEN).get_int(),
+            background_color=style.Color(LIGHT_GREEN).get_int(),
             orientation=hippo.ORIENTATION_HORIZONTAL)
         topbox.append(hippo.CanvasWidget(widget=self._logo()))
         languageselectbox = self._canvas_language_select_box()
@@ -926,9 +924,9 @@ class PollBuilder(activity.Activity):
         disconnect_lp True does not connect the button.
         """
         lessonplanbox = hippo.CanvasBox(
-            background_color=color.HTMLColor(LIGHT_GREEN).get_int(),
+            background_color=style.Color(LIGHT_GREEN).get_int(),
             border_top=4, border_left=4, border_right=4,
-            border_color=color.HTMLColor(YELLOW).get_int(),
+            border_color=style.Color(YELLOW).get_int(),
             padding_top=12, padding_bottom=12,
             padding_left=30, padding_right=30,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -1019,9 +1017,9 @@ class PollBuilder(activity.Activity):
 
     def _canvas_mainbox(self):
         mainbox = hippo.CanvasBox(spacing=4,
-            background_color=color.HTMLColor(LIGHT_GREEN).get_int(),
+            background_color=style.Color(LIGHT_GREEN).get_int(),
             border=4,
-            border_color=color.HTMLColor(YELLOW).get_int(),
+            border_color=style.Color(YELLOW).get_int(),
             padding_top=20, padding_left=40, padding_right=40,
             padding_bottom=20,
             orientation=hippo.ORIENTATION_VERTICAL)
@@ -1041,7 +1039,7 @@ class PollBuilder(activity.Activity):
             text=text,
             xalign=hippo.ALIGNMENT_START,
             font_desc = pango.FontDescription('Sans 12'),
-            color=color.HTMLColor(text_color).get_int())
+            color=style.Color(text_color).get_int())
 
     def _canvas_buttonbox(self, button_to_highlight=None):
         button_box = hippo.CanvasBox(
