@@ -1072,8 +1072,8 @@ class PollBuilder(activity.Activity):
         self._shared_activity.connect('buddy-left', self._buddy_left_cb)
 
         self._logger.debug('This is my activity: making a tube...')
-        id = self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].OfferTube(
-            telepathy.TUBE_TYPE_DBUS, SERVICE, {})
+        id = self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].OfferDBusTube(
+            SERVICE, {})
 
     def _setup(self):
         """Setup my Tubes channel.
@@ -1159,7 +1159,7 @@ class PollBuilder(activity.Activity):
         if (type == telepathy.TUBE_TYPE_DBUS and
             service == SERVICE):
             if state == telepathy.TUBE_STATE_LOCAL_PENDING:
-                self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].AcceptTube(id)
+                self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].AcceptDBusTube(id)
 
             tube_conn = TubeConnection(self.conn,
                 self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES],
