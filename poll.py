@@ -1108,12 +1108,9 @@ class PollBuilder(activity.Activity):
         if text_chan is None:
             self._logger.error("Presence service didn't create a text channel")
             return
-
-        # Make sure we have a Tubes channel - PS doesn't yet provide one
         if tubes_chan is None:
-            self._logger.debug("Didn't find our Tubes channel, requesting one...")
-            tubes_chan = self.conn.request_channel(telepathy.CHANNEL_TYPE_TUBES,
-                telepathy.HANDLE_TYPE_ROOM, room, True)
+            self._logger.error("Presence service didn't create a tubes channel")
+            return
 
         self.tubes_chan = tubes_chan
         self.text_chan = text_chan
