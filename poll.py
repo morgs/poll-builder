@@ -1195,7 +1195,7 @@ class PollBuilder(activity.Activity):
             self._logger.debug('CS handle %u belongs to %u', cs_handle, handle)
         else:
             handle = cs_handle
-            logger.debug('non-CS handle %u belongs to itself', handle)
+            self._logger.debug('non-CS handle %u belongs to itself', handle)
             assert handle != 0
         return self.pservice.get_buddy_by_telepathy_handle(self.tp_conn_name,
                 self.tp_conn_path, handle)
