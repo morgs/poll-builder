@@ -496,10 +496,6 @@ class PollBuilder(activity.Activity):
                     font_desc = pango.FontDescription('Sans %d' %
                         self._size_answer_text(choice))))
 
-            # show results if the user has just voted,
-            # unless the poll is closed - then show it straight away
-#            if votes_total > 0 and ((self._poll.active and self._has_voted) or
-#                                    not self._poll.active):
             if votes_total > 0:
                 # show results
                 self._logger.debug(str(self._poll.data[choice] * 1.0 / votes_total))
