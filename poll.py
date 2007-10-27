@@ -43,9 +43,9 @@ from sugar.presence import presenceservice
 from abiword import Canvas as AbiCanvas
 from i18n import LanguageComboBox
 
-SERVICE = "org.worldwideworkshop.PollBuilder"
+SERVICE = "org.worldwideworkshop.olpc.PollBuilder"
 IFACE = SERVICE
-PATH = "/org/worldwideworkshop/PollBuilder"
+PATH = "/org/worldwideworkshop/olpc/PollBuilder"
 
 # Theme definitions - colors
 LIGHT_GREEN = '#66CC00'
