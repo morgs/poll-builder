@@ -3,5 +3,5 @@ name = Poll
 service_name = org.worldwideworkshop.PollBuilder
 class = poll.PollBuilder
 icon = activity-poll
-activity_version = 8
+activity_version = 9
 show_launcher = yes
