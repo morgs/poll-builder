@@ -39,7 +39,6 @@ except ImportError:
 
 from sugar.activity import activity
 from sugar.graphics import style
-from sugar.graphics.alert import NotifyAlert
 from sugar.presence import presenceservice
 from abiword import Canvas as AbiCanvas
 from i18n import LanguageComboBox
@@ -247,19 +246,6 @@ class PollBuilder(activity.Activity):
         f = open(file_path, 'w')
         f.write(s)
         f.close()
-
-    def alert(self, title, text=None):
-        """Show an alert above the activity."""
-        alert = NotifyAlert(timeout=10)
-        alert.props.title = title
-        alert.props.msg = text
-        self.add_alert(alert)
-        alert.connect('response', self._alert_cancel_cb)
-        alert.show()
-
-    def _alert_cancel_cb(self, alert, response_id):
-        """Callback for alert events"""
-        self.remove_alert(alert)
 
     def _poll_canvas(self):
         """Show the poll canvas where children vote on an existing poll."""
@@ -874,8 +860,6 @@ class PollBuilder(activity.Activity):
             if poll.author == author and poll.title == title:
                 try:
                     poll.register_vote(choice, votersha)
-                    self.alert(_('Vote'),
-                               _('Somebody voted on %s') % title)
                 except OverflowError:
                     self._logger.debug('Ignored mesh vote %u from %s:'
                         ' poll reached maximum votes.',
@@ -1167,7 +1151,6 @@ class PollBuilder(activity.Activity):
             self._logger.debug('Buddy %s is already in the activity' % buddy.props.nick)
 
         self._logger.debug('Joined an existing shared activity')
-        self.alert(_('Joined'))
         self.initiating = False
         self._setup()
 
@@ -1193,11 +1176,9 @@ class PollBuilder(activity.Activity):
             self.poll_session = PollSession(tube_conn, self.initiating, self._get_buddy, self)
 
     def _buddy_joined_cb (self, activity, buddy):
-        self.alert(buddy.props.nick, _('Joined'))
         self._logger.debug('Buddy %s joined' % buddy.props.nick)
 
     def _buddy_left_cb (self, activity, buddy):
-        self.alert(buddy.props.nick, _('Left'))
         self._logger.debug('Buddy %s left' % buddy.props.nick)
 
     def _get_buddy(self, cs_handle):
@@ -1504,9 +1485,6 @@ class PollSession(ExportedGObject):
                     createdate, maxvoters, question, number_of_options,
                     options, data, votes)
         self.activity._polls.add(poll)
-        self.activity.alert(_('New Poll'),
-                            _("%s shared a poll '%s' with you.") % 
-                            (author, title))
 
     def vote_cb(self, author, title, choice, votersha, sender=None):
         """Receive somebody's vote signal.
@@ -1560,9 +1538,6 @@ class PollSession(ExportedGObject):
                     createdate, maxvoters, question, number_of_options,
                     options, data, votes)
         self.activity._polls.add(poll)
-        self.activity.alert(_('New Poll'),
-                            _("%s shared a poll '%s' with you.") % 
-                            (author, title))
 
     @method(dbus_interface=IFACE, in_signature='s', out_signature='')
     def PollsWanted(self, sender):

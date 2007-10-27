@@ -1,3 +1,6 @@
+* Reverted #2736 status alerts because it depends on
+  newer sugar than in current joyride (morgs)
+
 8
 
 * #2736: Added status bar showing mesh events (morgs)
