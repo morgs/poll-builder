@@ -610,7 +610,14 @@ class PollBuilder(activity.Activity):
                 return
             self._logger.debug('Voted '+str(self.current_vote))
             self._has_voted = True
-            self._poll.register_vote(self.current_vote, self.nick_sha1)
+            try:
+                self._poll.register_vote(self.current_vote, self.nick_sha1)
+            except OverflowError:
+                self._logger.debug('Local vote failed: '
+                    'maximum votes already registered.')
+            except ValueError:
+                self._logger.debug('Local vote failed: '
+                    'poll closed.')
             self._logger.debug('Results: '+str(self._poll.data))
             self.draw_poll_details_box()
 
@@ -1297,7 +1304,6 @@ class Poll:
                 raise OverflowError, 'Poll reached maxvoters'
         else:
             raise ValueError, 'Poll closed'
-            # FIXME: What happens when exception raised?
 
     def broadcast_on_mesh(self):
         if self.activity.poll_session:
