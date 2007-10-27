@@ -851,7 +851,16 @@ class PollBuilder(activity.Activity):
         """
         for poll in self._polls:
             if poll.author == author and poll.title == title:
-                poll.register_vote(choice, votersha)
+                try:
+                    poll.register_vote(choice, votersha)
+                except OverflowError:
+                    self._logger.debug('Ignored mesh vote %u from %s:'
+                        ' poll reached maximum votes.',
+                        choice, votersha)
+                except ValueError:
+                    self._logger.debug('Ignored mesh vote %u from %s:'
+                        ' poll closed.',
+                        choice, votersha)
 
     def _canvas_language_select_box(self):
         """CanvasBox definition for lang select box.
