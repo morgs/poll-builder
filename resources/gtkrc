@@ -1,0 +1,35 @@
+style "mamabutton"
+{
+    color["focus_line"] = "#027F01"
+    bg[NORMAL] = "#027F01"
+    bg[ACTIVE] = "#026002"
+    GtkButton::inner-border = { 10, 10,  # left, right
+                                6, 6 }  # top, bottom
+}
+
+style "mamacombo"
+{
+    color["focus_line"] = "#027F01"
+    bg[NORMAL] = "#027F01"
+    bg[ACTIVE] = "#026002"
+}
+
+style "mamanotebook"
+{
+    fg[NORMAL] = "#FFFFFF"
+    fg[ACTIVE] = "#FFFFFF"
+    fg[PRELIGHT] = "#FFFFFF"
+    bg[NORMAL] = "#027F01"
+    bg[ACTIVE] = "#026002"
+}
+
+style "fixframe"
+{  
+    bg[NORMAL] = "#808080"
+}
+
+
+widget       "*GtkButton*"     style "mamabutton"
+widget_class "*<GtkComboBox>*" style "mamacombo"
+widget_class "*<GtkNotebook>"  style "mamanotebook"
+widget       "*ComboBox*"      style "fixframe"
