@@ -1,3 +1,6 @@
+* #2736: Reapplied status alerts with a fallback suggested
+  by hmmmbird (morgs)
+
 9
 
 * Reverted #2736 status alerts because it depends on
