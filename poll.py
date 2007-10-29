@@ -160,16 +160,6 @@ class PollBuilder(activity.Activity):
         self._logger = logging.getLogger('poll-activity')
         self._logger.debug('Starting Poll activity')
 
-        # customise theme
-        gtkrc = os.path.join(activity.bundle_path(), 'resources/gtkrc')
-        if os.path.exists(gtkrc)
-            self._loggeerebug("Loading resources from %s" % gtkrc)
-            gtk.rc_add_default_file(gtkrc)
-            settings = gtk.settings_get_default()
-            gtk.rc_reparse_all_for_settings(settings, True)
-            self._logger.debug("Loading resources DONE")
-        # FIXME: test this ^^^ and remove other theme stuff
-
         # get the Presence Service
         self.pservice = presenceservice.get_instance()
         name, path = self.pservice.get_preferred_connection()
