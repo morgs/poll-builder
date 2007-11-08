@@ -181,7 +181,7 @@ class PollBuilder(activity.Activity):
         self._polls = set()
         self._make_default_poll()
         self._has_voted = False
-        self._preview = False
+        self._previewing = False
         self._current_view = None  # so we can switch back
 
         toolbox = activity.ActivityToolbox(self)
@@ -283,7 +283,7 @@ class PollBuilder(activity.Activity):
         mainbox = self._canvas_mainbox()
         pollbuilderbox.append(mainbox)
 
-        if not self._preview:
+        if not self._previewing:
             mainbox.append(self._text_mainbox(_('VOTE!')))
         else:
             mainbox.append(self._text_mainbox(_('Poll Preview')))
@@ -591,7 +591,7 @@ class PollBuilder(activity.Activity):
                     font_desc = pango.FontDescription('Sans 12')))
 
         # Button area
-        if self._poll.active and not self._preview:
+        if self._poll.active and not self._previewing:
             button_box = hippo.CanvasBox(spacing=8,
                 padding = 8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
@@ -599,7 +599,7 @@ class PollBuilder(activity.Activity):
             button.connect('clicked', self._button_vote_cb)
             button_box.append(hippo.CanvasWidget(widget=theme_button(button)))
             poll_details_box.append(button_box)
-        elif self._preview:
+        elif self._previewing:
             button_box = hippo.CanvasBox(spacing=8,
                 padding = 8,
                 orientation=hippo.ORIENTATION_HORIZONTAL)
@@ -769,7 +769,7 @@ class PollBuilder(activity.Activity):
             return
         # Data OK
         self._poll.active = True  # Show radio buttons
-        self._preview = True
+        self._previewing = True
         self._canvas.set_root(self._poll_canvas())
         self.show_all()
 
@@ -782,7 +782,7 @@ class PollBuilder(activity.Activity):
             self.show_all()
             return
         # Data OK
-        self._preview = False
+        self._previewing = False
         self._poll.active = True
         self._polls.add(self._poll)
         self._poll.broadcast_on_mesh()
