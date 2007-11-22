@@ -1,3 +1,5 @@
+* #5065: Handle None from get_preferred_connection (cassidy)
+
 12
 
 * #4743: Fix self._preview conflict with screenshot for journal (morgs)

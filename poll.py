@@ -162,7 +162,11 @@ class PollBuilder(activity.Activity):
 
         # get the Presence Service
         self.pservice = presenceservice.get_instance()
-        name, path = self.pservice.get_preferred_connection()
+        try:
+            name, path = self.pservice.get_preferred_connection()
+        except TypeError:
+            self._logger.debug('Failed to get a PS connection')
+            return
         self.tp_conn_name = name
         self.tp_conn_path = path
         self.conn = telepathy.client.Connection(name, path)
