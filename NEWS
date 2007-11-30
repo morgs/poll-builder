@@ -1,3 +1,5 @@
+* #4745: Reduce tubes code - fixes #5065 too (morgs)
+
 13
 
 * #5065: Handle None from get_preferred_connection (cassidy)

@@ -162,15 +162,7 @@ class PollBuilder(activity.Activity):
 
         # get the Presence Service
         self.pservice = presenceservice.get_instance()
-        try:
-            name, path = self.pservice.get_preferred_connection()
-        except TypeError:
-            self._logger.debug('Failed to get a PS connection')
-            return
-        self.tp_conn_name = name
-        self.tp_conn_path = path
-        self.conn = telepathy.client.Connection(name, path)
-        self.initiating = None
+        self.initiating = False
         
         # Buddy object for you
         owner = self.pservice.get_owner()
@@ -201,17 +193,7 @@ class PollBuilder(activity.Activity):
 
         self.poll_session = None  # PollSession
         self.connect('shared', self._shared_cb)
-
-        if self._shared_activity:
-            # we are joining the activity
-            self.connect('joined', self._joined_cb)
-            self._shared_activity.connect('buddy-joined',
-                                          self._buddy_joined_cb)
-            self._shared_activity.connect('buddy-left',
-                                          self._buddy_left_cb)
-            if self.get_shared():
-                # we've already joined
-                self._joined_cb()
+        self.connect('joined', self._joined_cb)
 
     def read_file(self, file_path):
         """Implement reading from journal
@@ -1102,20 +1084,13 @@ class PollBuilder(activity.Activity):
         """Callback for completion of sharing this activity."""
         self._logger.debug('My activity was shared')
         self.initiating = True
-        self._setup()
-
-        for buddy in self._shared_activity.get_joined_buddies():
-            self._logger.debug('Buddy %s is already in the activity' %
-                buddy.props.nick)
-
-        self._shared_activity.connect('buddy-joined', self._buddy_joined_cb)
-        self._shared_activity.connect('buddy-left', self._buddy_left_cb)
+        self._sharing_setup()
 
         self._logger.debug('This is my activity: making a tube...')
         id = self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].OfferDBusTube(
             SERVICE, {})
 
-    def _setup(self):
+    def _sharing_setup(self):
         """Setup my Tubes channel.
         
         Called from _shared_cb or _joined_cb.
@@ -1124,43 +1099,15 @@ class PollBuilder(activity.Activity):
             self._logger.error('Failed to share or join activity')
             return
 
-        bus_name, conn_path, channel_paths =\
-            self._shared_activity.get_channels()
+        self.conn = self._shared_activity.telepathy_conn
+        self.tubes_chan = self._shared_activity.telepathy_tubes_chan
+        self.text_chan = self._shared_activity.telepathy_text_chan
 
-        # Work out what our room is called and whether we have Tubes already
-        room = None
-        tubes_chan = None
-        text_chan = None
-        for channel_path in channel_paths:
-            channel = telepathy.client.Channel(bus_name, channel_path)
-            htype, handle = channel.GetHandle()
-            if htype == telepathy.HANDLE_TYPE_ROOM:
-                self._logger.debug('Found our room: it has handle#%d "%s"',
-                    handle, self.conn.InspectHandles(htype, [handle])[0])
-                room = handle
-                ctype = channel.GetChannelType()
-                if ctype == telepathy.CHANNEL_TYPE_TUBES:
-                    self._logger.debug('Found our Tubes channel at %s', channel_path)
-                    tubes_chan = channel
-                elif ctype == telepathy.CHANNEL_TYPE_TEXT:
-                    self._logger.debug('Found our Text channel at %s', channel_path)
-                    text_chan = channel
+        self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].connect_to_signal(
+            'NewTube', self._new_tube_cb)
 
-        if room is None:
-            self._logger.error("Presence service didn't create a room")
-            return
-        if text_chan is None:
-            self._logger.error("Presence service didn't create a text channel")
-            return
-        if tubes_chan is None:
-            self._logger.error("Presence service didn't create a tubes channel")
-            return
-
-        self.tubes_chan = tubes_chan
-        self.text_chan = text_chan
-
-        tubes_chan[telepathy.CHANNEL_TYPE_TUBES].connect_to_signal('NewTube',
-            self._new_tube_cb)
+        self._shared_activity.connect('buddy-joined', self._buddy_joined_cb)
+        self._shared_activity.connect('buddy-left', self._buddy_left_cb)
 
     def _list_tubes_reply_cb(self, tubes):
         for tube_info in tubes:
@@ -1174,14 +1121,10 @@ class PollBuilder(activity.Activity):
         if not self._shared_activity:
             return
 
-        # Find out who's already in the shared activity:
-        for buddy in self._shared_activity.get_joined_buddies():
-            self._logger.debug('Buddy %s is already in the activity' % buddy.props.nick)
-
         self._logger.debug('Joined an existing shared activity')
         self.alert(_('Joined'))
         self.initiating = False
-        self._setup()
+        self._sharing_setup()
 
         self._logger.debug('This is not my activity: waiting for a tube...')
         self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].ListTubes(
@@ -1228,8 +1171,8 @@ class PollBuilder(activity.Activity):
             handle = cs_handle
             self._logger.debug('non-CS handle %u belongs to itself', handle)
             assert handle != 0
-        return self.pservice.get_buddy_by_telepathy_handle(self.tp_conn_name,
-                self.tp_conn_path, handle)
+        return self.pservice.get_buddy_by_telepathy_handle(
+            self.conn.service_name, self.conn.object_path, handle)
 
 
 class Poll:
