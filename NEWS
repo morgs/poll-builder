@@ -1,3 +1,5 @@
+#5465: fixed locale problem which prevented launching on build 650 (morgs)
+
 14
 
 * #4745: Reduce tubes code - fixes #5065 too (morgs)

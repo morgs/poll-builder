@@ -129,11 +129,15 @@ class LanguageComboBox (gtk.ComboBox):
             self.translations[self.get_active()].install()
         else:
             code, encoding = locale.getdefaultlocale()
-            # Try to find the exact translation
-            for i,t in enumerate(self.translations):
-                if t.matches(code):
-                    self.set_active(i)
-                    break
+            # Handle default locale of None:
+            if code is None:
+                self.set_active(0)
+            if self.get_active() < 0:
+                # Try to find the exact translation
+                for i,t in enumerate(self.translations):
+                    if t.matches(code):
+                        self.set_active(i)
+                        break
             if self.get_active() < 0:
                 # Failed, try to get the translation based only in the country
                 for i,t in enumerate(self.translations):
