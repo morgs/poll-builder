@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# If you find this activity useful or end up using parts of it in one of
+# your own creations we would love to hear from you at
+# info@WorldWideWorkshop.org !
+#
 
 import os
 import cPickle
