@@ -487,8 +487,7 @@ class PollBuilder(activity.Activity):
             font_desc = pango.FontDescription('Sans %d' % text_size))
         poll_details_box.append(question)
 
-        button = None  # required for radio button group
-        button = gtk.RadioButton()
+        group = gtk.RadioButton()  # required for radio button group
         for choice in range(self._poll.number_of_options):
             self._logger.debug(self._poll.options[choice])
             answer_row = hippo.CanvasBox(spacing=8,
@@ -499,7 +498,7 @@ class PollBuilder(activity.Activity):
                 orientation=hippo.ORIENTATION_HORIZONTAL)
             answer_row.append(sized_box)
             if self._poll.active:
-                button = gtk.RadioButton(button, ' '+self._poll.options[choice])
+                button = gtk.RadioButton(group, ' '+self._poll.options[choice])
                 button.set_size_request(400, -1)
                 button.connect('toggled', self.vote_choice_radio_button, choice)
                 sized_box.append(hippo.CanvasWidget(
