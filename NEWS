@@ -1,3 +1,8 @@
+* Fix radio button selection (morgs)
+* #6022: Fix scrolling (morgs)
+* Remove default poll creation (morgs)
+* Fix copyright, add AUTHORS (morgs)
+
 15
 
 #5465: fixed locale problem which prevented launching on build 650 (morgs)
