@@ -180,7 +180,9 @@ class PollBuilder(activity.Activity):
 
         # setup example poll
         self._polls = set()
-        self._make_default_poll()
+        # Removed default polls since it creates too much noise
+        # when shared with many on the mesh
+        #self._make_default_poll()
         self._has_voted = False
         self._previewing = False
         self._current_view = None  # so we can switch back
