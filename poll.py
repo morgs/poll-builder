@@ -318,21 +318,23 @@ class PollBuilder(activity.Activity):
         poll_details_box = hippo.CanvasBox(spacing=8,
             background_color=style.COLOR_WHITE.get_int(),
             border=4,
+            box_height=500,
             border_color=style.Color(PINK).get_int(),  # XXXX
             padding=20,
             xalign=hippo.ALIGNMENT_START,
             orientation=hippo.ORIENTATION_VERTICAL)
         mainbox.append(poll_details_box)
 
-        # add scroll window XXX add to canvas how?
-        scrolledwindow = gtk.ScrolledWindow()
+        # add scroll window
+        scrolledwindow = hippo.CanvasScrollbars()
         scrolledwindow.set_policy(
-            hscrollbar_policy=gtk.POLICY_NEVER,
-            vscrollbar_policy=gtk.POLICY_AUTOMATIC)
+            hippo.ORIENTATION_HORIZONTAL, hippo.SCROLLBAR_NEVER)
 
         poll_selector_box = hippo.CanvasBox(
             orientation=hippo.ORIENTATION_VERTICAL)
-        poll_details_box.append(poll_selector_box)  # XXX scrolledwindow?
+        scrolledwindow.set_root(poll_selector_box)
+        poll_details_box.append(scrolledwindow,
+                                hippo.PACK_EXPAND)
 
         row_number = 0
         for poll in self._polls:
